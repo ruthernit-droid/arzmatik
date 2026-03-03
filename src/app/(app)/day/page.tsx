@@ -3,7 +3,8 @@
 import React, { useState, useMemo } from "react";
 import { useFirebaseDataContext } from "@/components/FirebaseDataContext";
 import { processBatchOperation } from "@/lib/data-service";
-import { Save, Check, Copy } from "lucide-react";
+import { Save, Check, Copy, ExternalLink } from "lucide-react";
+import { getBankLoginUrl } from "@/constants/banks";
 
 export default function DayTradingPage() {
   const { ipos, accounts, user, refreshData } = useFirebaseDataContext();
@@ -281,6 +282,31 @@ export default function DayTradingPage() {
                   </div>
                 </div>
                 <div className="flex items-center gap-2">
+                  {account.bankName && getBankLoginUrl(account.bankName.toLowerCase().replace(/[^a-z]/g, '')) && (
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        const url = getBankLoginUrl(account.bankName.toLowerCase().replace(/[^a-z]/g, ''));
+                        if (url) window.open(url, '_blank');
+                      }}
+                      className="p-1.5 bg-green-500/10 text-green-400 rounded-lg"
+                      title="Banka/Giriş"
+                    >
+                      <ExternalLink className="w-3 h-3" />
+                    </button>
+                  )}
+                  {account.brokerageUrl && (
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        window.open(account.brokerageUrl, '_blank');
+                      }}
+                      className="p-1.5 bg-purple-500/10 text-purple-400 rounded-lg"
+                      title="Hisse Senedi"
+                    >
+                      <ExternalLink className="w-3 h-3" />
+                    </button>
+                  )}
                   <button
                     onClick={(e) => {
                       e.stopPropagation();
