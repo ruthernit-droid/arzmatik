@@ -8,12 +8,14 @@ import {
   TrendingDown,
   TrendingUp,
   Plus,
+  ShoppingCart,
   ArrowUpRight,
 } from "lucide-react";
 
 import SellDashboard from "@/components/SellDashboard";
 import SellSelectorModal from "@/components/SellSelectorModal";
 import AddHoldingModal from "@/components/AddHoldingModal";
+import BulkPortfolioBuyModal from "@/components/BulkPortfolioBuyModal";
 
 import { useFirebaseDataContext } from "@/components/FirebaseDataContext";
 import { cleanupUserData, updateIpoPrice } from "@/lib/data-service";
@@ -119,6 +121,7 @@ export default function PortfolioPage() {
   const [showSellModal, setShowSellModal] = useState(false);
   const [showSellSelector, setShowSellSelector] = useState(false);
   const [showAddHoldingModal, setShowAddHoldingModal] = useState(false);
+  const [showBulkPortfolioBuyModal, setShowBulkPortfolioBuyModal] = useState(false);
 
   const [isRefreshingPrices, setIsRefreshingPrices] = useState(false);
   const [openingSellKey, setOpeningSellKey] = useState<string | null>(null);
@@ -187,12 +190,18 @@ export default function PortfolioPage() {
       </div>
 
       {/* Action Buttons - Horizontal scroll on mobile */}
-      <div className="flex gap-2 overflow-x-auto pb-2 -mx-4 px-4">
+<div className="flex gap-2 overflow-x-auto pb-2 -mx-4 px-4">
         <button
           onClick={() => setShowAddHoldingModal(true)}
           className="flex items-center gap-2 px-4 py-3 rounded-xl text-xs font-bold bg-blue-500/10 text-blue-400 border border-blue-500/30 whitespace-nowrap"
         >
           <Plus className="w-4 h-4" /> Ekle
+        </button>
+        <button
+          onClick={() => setShowBulkPortfolioBuyModal(true)}
+          className="flex items-center gap-2 px-4 py-3 rounded-xl text-xs font-bold bg-purple-500/10 text-purple-400 border border-purple-500/30 whitespace-nowrap"
+        >
+          <ShoppingCart className="w-4 h-4" /> Toplu Al
         </button>
         <button
           onClick={() => setShowSellSelector(true)}
@@ -261,6 +270,12 @@ export default function PortfolioPage() {
       <AnimatePresence>
         {showAddHoldingModal && user && (
           <AddHoldingModal userId={user.uid} accounts={accounts} ipos={ipos} onClose={() => setShowAddHoldingModal(false)} onSaved={() => refreshData()} />
+        )}
+      </AnimatePresence>
+
+      <AnimatePresence>
+        {showBulkPortfolioBuyModal && user && (
+          <BulkPortfolioBuyModal userId={user.uid} accounts={accounts} ipos={ipos} onClose={() => setShowBulkPortfolioBuyModal(false)} onSaved={() => refreshData()} />
         )}
       </AnimatePresence>
     </div>
