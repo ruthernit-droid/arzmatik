@@ -1,11 +1,11 @@
 "use client";
 
 import React, { useMemo, useState } from "react";
-import { RefreshCcw, Search, Pencil } from "lucide-react";
+import { RefreshCcw, Search, Pencil, Plus } from "lucide-react";
 import { AnimatePresence, motion } from "framer-motion";
 import { useFirebaseDataContext } from "@/components/FirebaseDataContext";
 import { fetchLatestPriceTwelve } from "@/lib/price-service";
-import { updateIpoPrice } from "@/lib/data-service";
+import { updateIpoPrice, addHoldingToAccount } from "@/lib/data-service";
 import StockModal from "@/components/StockModal";
 
 function fmtTime(iso?: string) {
@@ -16,16 +16,22 @@ function fmtTime(iso?: string) {
 }
 
 export default function StocksPage() {
-  const { ipos, refreshData } = useFirebaseDataContext();
+  const { ipos, accounts, user, refreshData } = useFirebaseDataContext();
   const [q, setQ] = useState("");
   const [isUpdating, setIsUpdating] = useState(false);
   const [progress, setProgress] = useState<{ done: number; total: number } | null>(null);
   const [editingStock, setEditingStock] = useState<any | null>(null);
+  
+  // Add to portfolio state
+  const [addingStock, setAddingStock] = useState<any | null>(null);
+  const [selectedAccounts, setSelectedAccounts] = useState<string[]>([]);
+  const [buyLots, setBuyLots] = useState<number>(0);
+  const [isSaving, setIsSaving] = useState(false);
 
   const rows = useMemo(() => {
     const query = q.trim().toUpperCase();
     const base = (ipos || [])
-      .filter((i: any) => String(i.status || "") === "Borsada İşlem Görüyor" || String(i.source || "") === "twelvedata")
+      .filter((i: any) => String(i.status || "") === "Borsada İşlem Görüyor" || String(i.status || "") === "listeleme" || String(i.source || "") === "twelvedata")
       .map((i: any) => ({
         id: i.id,
         ticker: String(i.ticker || "").toUpperCase(),
@@ -70,6 +76,49 @@ export default function StocksPage() {
     } finally {
       setIsUpdating(false);
       setProgress(null);
+    }
+  };
+
+  // Add to portfolio functions
+  const openAddToPortfolio = (stock: any) => {
+    setAddingStock(stock);
+    setSelectedAccounts([]);
+    setBuyLots(0);
+  };
+
+  const toggleAccount = (accId: string) => {
+    setSelectedAccounts(prev => 
+      prev.includes(accId) ? prev.filter(id => id !== accId) : [...prev, accId]
+    );
+  };
+
+  const handleAddToPortfolio = async () => {
+    if (!user || !addingStock || buyLots <= 0 || selectedAccounts.length === 0) {
+      alert("Lütfen lot ve en az bir hesap seçin!");
+      return;
+    }
+
+    setIsSaving(true);
+    try {
+      for (const accId of selectedAccounts) {
+        await addHoldingToAccount(
+          user.uid,
+          accId,
+          addingStock.ticker,
+          buyLots,
+          'portfolio',
+          addingStock.price,
+          true
+        );
+      }
+      await refreshData();
+      setAddingStock(null);
+      alert("Portföye eklendi!");
+    } catch (e) {
+      console.error(e);
+      alert("Hata oluştu!");
+    } finally {
+      setIsSaving(false);
     }
   };
 
@@ -120,17 +169,23 @@ export default function StocksPage() {
 
             <div className="flex gap-2">
               <button
-                onClick={() => setEditingStock(r)}
-                className="flex-1 py-2 bg-zinc-800 hover:bg-zinc-700 rounded-lg text-xs font-bold text-zinc-400"
+                onClick={() => openAddToPortfolio(r)}
+                className="flex-1 py-2 bg-blue-600 hover:bg-blue-500 rounded-lg text-xs font-bold text-white"
               >
-                Düzenle
+                <Plus className="w-3 h-3 inline mr-1" /> Portföye Ekle
+              </button>
+              <button
+                onClick={() => setEditingStock(r)}
+                className="px-3 py-2 bg-zinc-800 hover:bg-zinc-700 rounded-lg text-xs font-bold text-zinc-400"
+              >
+                <Pencil className="w-3 h-3" />
               </button>
               <button
                 onClick={() => updateOne(r.id, r.ticker)}
                 disabled={isUpdating}
-                className="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 rounded-lg text-xs font-bold text-white"
+                className="px-3 py-2 bg-emerald-600 hover:bg-emerald-500 rounded-lg text-xs font-bold text-white"
               >
-                Fiyat Güncelle
+                <RefreshCcw className={`w-3 h-3 ${isUpdating ? "animate-spin" : ""}`} />
               </button>
             </div>
           </div>
@@ -150,6 +205,96 @@ export default function StocksPage() {
             onClose={() => setEditingStock(null)}
             onSave={refreshData}
           />
+        )}
+      </AnimatePresence>
+
+      {/* Add to Portfolio Modal */}
+      <AnimatePresence>
+        {addingStock && (
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setAddingStock(null)}
+              className="absolute inset-0 bg-black/80 backdrop-blur-sm"
+            />
+            <motion.div
+              initial={{ scale: 0.95, opacity: 0, y: 20 }}
+              animate={{ scale: 1, opacity: 1, y: 0 }}
+              exit={{ scale: 0.95, opacity: 0, y: 20 }}
+              className="relative bg-zinc-950 border border-zinc-800 rounded-3xl w-full max-w-md overflow-hidden shadow-2xl"
+            >
+              <div className="p-6 border-b border-zinc-900 bg-zinc-900/50">
+                <h2 className="text-xl font-bold text-white">Portföye Ekle</h2>
+                <p className="text-sm text-zinc-500">{addingStock.ticker} - {Number(addingStock.price || 0).toLocaleString("tr-TR", { minimumFractionDigits: 2 })} TL</p>
+              </div>
+
+              <div className="p-6 space-y-4">
+                <div className="space-y-2">
+                  <label className="text-xs font-black uppercase text-zinc-500">Lot</label>
+                  <input
+                    type="number"
+                    value={buyLots || ""}
+                    onChange={(e) => setBuyLots(Number(e.target.value))}
+                    className="w-full bg-zinc-900 border border-zinc-800 rounded-xl px-4 py-3 text-white font-bold"
+                    placeholder="0"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <div className="flex justify-between">
+                    <label className="text-xs font-black uppercase text-zinc-500">Hesaplar</label>
+                    <button 
+                      onClick={() => setSelectedAccounts(accounts?.map((a: any) => a.id) || [])}
+                      className="text-xs text-emerald-400 font-bold"
+                    >
+                      Tümünü Seç
+                    </button>
+                  </div>
+                  <div className="grid grid-cols-1 gap-2 max-h-40 overflow-y-auto">
+                    {accounts?.map((acc: any) => (
+                      <div
+                        key={acc.id}
+                        onClick={() => toggleAccount(acc.id)}
+                        className={`p-3 rounded-xl border cursor-pointer flex items-center justify-between ${
+                          selectedAccounts.includes(acc.id)
+                            ? "bg-emerald-500/10 border-emerald-500/40"
+                            : "bg-zinc-900 border-zinc-800"
+                        }`}
+                      >
+                        <span className="font-bold text-sm">{acc.ownerName || acc.name}</span>
+                        <span className="text-xs text-zinc-500">{acc.bankName}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="bg-zinc-900/50 p-3 rounded-xl">
+                  <div className="flex justify-between">
+                    <span className="text-zinc-500 text-sm">Toplam</span>
+                    <span className="font-black text-emerald-400">{(buyLots * addingStock.price).toLocaleString("tr-TR", { maximumFractionDigits: 0 })} TL</span>
+                  </div>
+                </div>
+              </div>
+
+              <div className="p-6 border-t border-zinc-900 bg-zinc-900/30 flex gap-3">
+                <button
+                  onClick={() => setAddingStock(null)}
+                  className="flex-1 py-3 text-zinc-400 font-bold"
+                >
+                  İptal
+                </button>
+                <button
+                  onClick={handleAddToPortfolio}
+                  disabled={isSaving || buyLots <= 0 || selectedAccounts.length === 0}
+                  className="flex-1 py-3 bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 rounded-xl font-bold text-white"
+                >
+                  {isSaving ? "Kaydediliyor..." : "Ekle"}
+                </button>
+              </div>
+            </motion.div>
+          </div>
         )}
       </AnimatePresence>
     </div>
