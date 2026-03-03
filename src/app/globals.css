@@ -1,0 +1,480 @@
+@import "tailwindcss";
+
+:root {
+  --background: #09090b;
+  --foreground: #f8fafc;
+  --primary: #10b981;
+  --secondary: #3b82f6;
+  --accent: #8b5cf6;
+  --card: rgba(24, 24, 27, 0.7);
+  --card-border: rgba(39, 39, 42, 0.3);
+  --glass: rgba(255, 255, 255, 0.03);
+  --glass-border: rgba(255, 255, 255, 0.1);
+  --input-bg: rgba(24, 24, 27, 0.5);
+  --input-border: rgba(255, 255, 255, 0.1);
+  --sub-text: #94a3b8;
+  --text-muted: #64748b;
+  --border-color: rgba(255, 255, 255, 0.1);
+  --hover-bg: rgba(255, 255, 255, 0.05);
+  --table-header: rgba(255, 255, 255, 0.02);
+  --table-border: rgba(255, 255, 255, 0.06);
+}
+
+.light {
+  --background: #f8fafc;
+  --foreground: #0f172a;
+  --primary: #059669;
+  --secondary: #2563eb;
+  --accent: #7c3aed;
+  --card: #ffffff;
+  --card-border: #e2e8f0;
+  --glass: rgba(255, 255, 255, 0.95);
+  --glass-border: #cbd5e1;
+  --input-bg: #ffffff;
+  --input-border: #cbd5e1;
+  --sub-text: #475569;
+  --text-muted: #64748b;
+  --border-color: #e2e8f0;
+  --hover-bg: #f1f5f9;
+  --table-header: #f8fafc;
+  --table-border: #e2e8f0;
+}
+
+/* CSS Variables for components */
+body {
+  --safe-area-inset-top: env(safe-area-inset-top, 0px);
+  --safe-area-inset-bottom: env(safe-area-inset-bottom, 0px);
+  --safe-area-inset-left: env(safe-area-inset-left, 0px);
+  --safe-area-inset-right: env(safe-area-inset-right, 0px);
+}
+
+.safe-area-bottom {
+  padding-bottom: max(0.5rem, env(safe-area-inset-bottom));
+}
+
+.safe-area-top {
+  padding-top: max(0.5rem, env(safe-area-inset-top));
+}
+
+body {
+  background-color: var(--background);
+  color: var(--foreground);
+  font-family: 'Inter', ui-sans-serif, system-ui, -apple-system, sans-serif;
+  transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+/* Mobile responsive containers */
+@media (max-width: 768px) {
+  .container-mobile {
+    padding-left: 1rem;
+    padding-right: 1rem;
+  }
+}
+
+.light body, .light {
+  font-size: 15px;
+}
+
+.light p,
+.light span,
+.light div,
+.light td,
+.light th {
+  font-size: 14px;
+}
+
+.light h1, .light h2, .light h3, .light h4 {
+  color: #0f172a;
+}
+
+.light h1 { font-size: 1.75rem; }
+.light h2 { font-size: 1.5rem; }
+.light h3 { font-size: 1.25rem; }
+.light h4 { font-size: 1.125rem; }
+
+.light h1, .light h2, .light h3, .light h4 {
+  color: #0f172a;
+}
+
+.light .text-zinc-400, .light .text-zinc-500 {
+  color: #475569 !important;
+}
+
+.light .text-zinc-300 {
+  color: #334155 !important;
+}
+
+.light .bg-zinc-900, .light .bg-zinc-950 {
+  background-color: #f1f5f9 !important;
+}
+
+.light .bg-zinc-800 {
+  background-color: #e2e8f0 !important;
+}
+
+.light .bg-zinc-950\/90 {
+  background-color: #ffffff !important;
+}
+
+.light .border-zinc-800, .light .border-zinc-900 {
+  border-color: #e2e8f0 !important;
+}
+
+.light input, .light select, .light textarea {
+  background-color: #ffffff !important;
+  border-color: #cbd5e1 !important;
+  color: #0f172a !important;
+}
+
+.light input:focus, .light select:focus {
+  border-color: #059669 !important;
+}
+
+.light button {
+  color: #0f172a;
+}
+
+.light .glass-card {
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+}
+
+/* Light Theme Component Overrides */
+.light .glass-card, 
+.light .stat-card {
+  background-color: #ffffff !important;
+  border-color: #e2e8f0 !important;
+}
+
+.light .glass-card:hover {
+  background-color: #f8fafc !important;
+}
+
+.light .border-zinc-800 {
+  border-color: #e2e8f0 !important;
+}
+
+.light .bg-zinc-900\/40,
+.light .bg-zinc-900\/60,
+.light .bg-zinc-900\/50 {
+  background-color: #f1f5f9 !important;
+}
+
+.light .bg-zinc-950 {
+  background-color: #0f172a !important;
+}
+
+.light .bg-zinc-900 {
+  background-color: #f1f5f9 !important;
+}
+
+.light .bg-zinc-800 {
+  background-color: #e2e8f0 !important;
+}
+
+.light .text-zinc-100 {
+  color: #0f172a !important;
+}
+
+.light .text-zinc-200 {
+  color: #1e293b !important;
+}
+
+.light .text-zinc-300 {
+  color: #334155 !important;
+}
+
+.light .text-zinc-400 {
+  color: #64748b !important;
+}
+
+.light .text-zinc-500 {
+  color: #475569 !important;
+}
+
+.light .group:hover {
+  background-color: #f8fafc !important;
+}
+
+/* Input fields - critical for readability */
+.light input[type="text"],
+.light input[type="number"],
+.light input[type="email"],
+.light input[type="password"],
+.light select,
+.light textarea {
+  background-color: #ffffff !important;
+  border: 1px solid #cbd5e1 !important;
+  color: #0f172a !important;
+}
+
+.light input::placeholder {
+  color: #94a3b8 !important;
+}
+
+.light input:focus,
+.light select:focus {
+  border-color: #059669 !important;
+  outline: 2px solid #05966920 !important;
+}
+
+/* Tables */
+.light table thead {
+  background-color: #f8fafc !important;
+}
+
+.light table th {
+  color: #475569 !important;
+}
+
+.light table td {
+  border-bottom-color: #e2e8f0 !important;
+}
+
+.light table tbody tr:hover {
+  background-color: #f1f5f9 !important;
+}
+
+/* Buttons */
+.light .bg-emerald-600 {
+  background-color: #059669 !important;
+}
+
+.light button:hover {
+  opacity: 0.9;
+}
+
+/* WHITE TEXT OVERRIDES FOR LIGHT THEME - CRITICAL */
+.light .text-white,
+.light .text-zinc-50,
+.light .text-zinc-100,
+.light .text-zinc-200 {
+  color: #0f172a !important;
+}
+
+.light .text-emerald-400 {
+  color: #059669 !important;
+}
+
+.light .text-amber-400 {
+  color: #d97706 !important;
+}
+
+.light .text-rose-400 {
+  color: #e11d48 !important;
+}
+
+.light .text-blue-400 {
+  color: #2563eb !important;
+}
+
+.light .font-bold:not(.text-zinc-500):not(.text-zinc-400):not(.text-zinc-300) {
+  color: #0f172a !important;
+}
+
+.light .font-black:not(.text-zinc-500):not(.text-zinc-400):not(.text-zinc-300) {
+  color: #1e293b !important;
+}
+
+.light table .font-bold,
+.light table .font-black {
+  color: #0f172a !important;
+}
+
+.light .group:hover .text-white,
+.light .group:hover .text-zinc-100 {
+  color: #0f172a !important;
+}
+
+/* DARK BOXES FIX FOR LIGHT THEME */
+.light .bg-zinc-950,
+.light .bg-zinc-900,
+.light .bg-zinc-800 {
+  background-color: #f1f5f9 !important;
+}
+
+.light .bg-zinc-800\/50,
+.light .bg-zinc-900\/50,
+.light .bg-zinc-900\/40,
+.light .bg-zinc-900\/30,
+.light .bg-zinc-900\/60,
+.light .bg-zinc-900\/20 {
+  background-color: #f8fafc !important;
+}
+
+.light .bg-black\/60,
+.light .bg-black\/80 {
+  background-color: rgba(15, 23, 42, 0.9) !important;
+}
+
+/* TABLE ROWS - CRITICAL FOR OPERATION PANEL */
+.light table tbody tr {
+  background-color: #ffffff !important;
+}
+
+.light table tbody tr:hover {
+  background-color: #f1f5f9 !important;
+}
+
+.light table tbody tr.bg-emerald-500\/5,
+.light table tbody tr.bg-blue-500\/5 {
+  background-color: #ecfdf5 !important;
+}
+
+.light table tbody tr.bg-amber-500\/10 {
+  background-color: #fffbeb !important;
+}
+
+.light table .border-l-2 {
+  border-color: #e2e8f0 !important;
+}
+
+/* Modal/Dialog backgrounds */
+.light .fixed .bg-zinc-950 {
+  background-color: #ffffff !important;
+}
+
+/* OPERATION PANEL SPECIFIC FIXES */
+.light .glass-card.bg-zinc-950,
+.light div[class*="bg-zinc-950"] {
+  background-color: #ffffff !important;
+  border-color: #e2e8f0 !important;
+}
+
+.light .border-emerald-500\/20 {
+  border-color: #a7f3d0 !important;
+}
+
+.light input.bg-zinc-900,
+.light select.bg-zinc-900 {
+  background-color: #ffffff !important;
+  border-color: #cbd5e1 !important;
+  color: #0f172a !important;
+}
+
+body {
+  background-color: var(--background);
+  color: var(--foreground);
+  font-family: 'Inter', ui-sans-serif, system-ui, -apple-system, sans-serif;
+  transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+@layer components {
+  .glass-card {
+    background-color: var(--card);
+    backdrop-filter: blur(12px);
+    border: 1px solid var(--card-border);
+    border-radius: 1.5rem;
+    padding: 1.5rem;
+    transition-property: all;
+    transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+    transition-duration: 300ms;
+    box-shadow: 0 4px 30px rgba(0, 0, 0, 0.1);
+  }
+
+  .premium-gradient {
+    background-image: linear-gradient(to bottom right, rgba(16, 185, 129, 0.2), rgba(59, 130, 246, 0.1), transparent);
+  }
+
+  .stat-card {
+    background-color: var(--card);
+    backdrop-filter: blur(12px);
+    border: 1px solid var(--card-border);
+    border-radius: 1.5rem;
+    padding: 1.5rem;
+    transition-property: all;
+    transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+    transition-duration: 300ms;
+    box-shadow: 0 4px 30px rgba(0, 0, 0, 0.05);
+  }
+
+  .stat-card:hover {
+    border-color: var(--primary);
+    transform: translateY(-2px);
+  }
+
+  .stat-card:hover {
+    border-color: rgba(16, 185, 129, 0.3);
+    background-color: rgba(24, 24, 27, 0.7);
+  }
+
+  .title-gradient {
+    background-clip: text;
+    -webkit-background-clip: text;
+    color: transparent;
+    background-image: linear-gradient(to right, #34d399, #3b82f6);
+    font-weight: 700;
+  }
+}
+
+.animate-float {
+  animation: float 6s ease-in-out infinite;
+}
+
+@keyframes float {
+  0% {
+    transform: translateY(0px);
+  }
+
+  50% {
+    transform: translateY(-10px);
+  }
+
+  100% {
+    transform: translateY(0px);
+  }
+}
+
+/* Mobile-First PWA Styles */
+@supports (padding: max(0px)) {
+  .safe-area-pt {
+    padding-top: max(0.5rem, env(safe-area-inset-top));
+  }
+  .safe-area-pb {
+    padding-bottom: max(1rem, env(safe-area-inset-bottom));
+  }
+  .safe-area-pl {
+    padding-left: max(0.5rem, env(safe-area-inset-left));
+  }
+  .safe-area-pr {
+    padding-right: max(0.5rem, env(safe-area-inset-right));
+  }
+}
+
+/* Touch-friendly tap targets - minimum 44px */
+button, 
+a, 
+[role="button"] {
+  min-height: 44px;
+  min-width: 44px;
+}
+
+/* Remove tap highlight on mobile */
+* {
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* Smooth scrolling */
+html {
+  scroll-behavior: smooth;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* Prevent pull-to-refresh on mobile */
+body {
+  overscroll-behavior-y: contain;
+}
+
+/* Better input styling for mobile */
+input, select, textarea {
+  font-size: 16px !important; /* Prevents iOS zoom on focus */
+}
+
+input[type="number"] {
+  -moz-appearance: textfield;
+}
+
+input[type="number"]::-webkit-inner-spin-button,
+input[type="number"]::-webkit-outer-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
