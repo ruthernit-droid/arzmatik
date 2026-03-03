@@ -79,8 +79,16 @@ export const saveIPO = async (ipo: any): Promise<string> => {
         price: Number(ipo.price || 0),
         ipoPrice: Number(ipo.ipoPrice ?? ipo.price ?? 0),
         totalOfferedLots: Number(ipo.totalOfferedLots || 0),
-        status: ipo.status || 'Talep Toplanıyor',
-        demandEndDate: ipo.demandEndDate || null,
+        status: ipo.status || 'duyuru',
+        // Date fields
+        announcementDate: ipo.announcementDate || null,
+        applicationStartDate: ipo.applicationStartDate || null,
+        applicationEndDate: ipo.applicationEndDate || null,
+        demandEndDate: ipo.demandEndDate ? `${ipo.demandEndDate}T${ipo.demandEndTime || '17:00'}:00` : null,
+        demandEndTime: ipo.demandEndTime || "17:00",
+        allocationDate: ipo.allocationDate || null,
+        resultDate: ipo.resultDate || null,
+        listingDate: ipo.listingDate || null,
         updatedAt: new Date().toISOString(),
         ...(ipo.price !== undefined && ipo.price !== null ? { priceUpdatedAt: new Date().toISOString() } : {}),
     };
@@ -431,4 +439,95 @@ export const updateIpoStatus = async (ipoId: string, newStatus: string): Promise
         status: newStatus,
         statusUpdatedAt: new Date().toISOString()
     });
+};
+
+// Auto-check and advance IPO status based on dates
+export const checkAndAdvanceIpoStatus = async (ipo: any): Promise<{ advanced: boolean; newStatus: string | null }> => {
+    const now = new Date();
+    const currentStatus = ipo.status;
+    
+    // Date-based status transitions
+    const statusTransitions: Record<string, { dateField: string; nextStatus: string; dateField2?: string; nextStatus2?: string }> = {
+        "duyuru": { dateField: "announcementDate", nextStatus: "basvuru_acik" },
+        "basvuru_acik": { dateField: "applicationStartDate", nextStatus: "talep_toplaniyor" },
+        "talep_toplaniyor": { dateField: "demandEndDate", nextStatus: "talep_kapandi" },
+        "talep_kapandi": { dateField: "allocationDate", nextStatus: "tahsis" },
+        "tahsis": { dateField: "resultDate", nextStatus: "sonuclar" },
+        "sonuclar": { dateField: "listingDate", nextStatus: "listeleme" },
+    };
+    
+    const transition = statusTransitions[currentStatus];
+    if (!transition) {
+        return { advanced: false, newStatus: null };
+    }
+    
+    const dateValue = ipo[transition.dateField];
+    if (!dateValue) {
+        return { advanced: false, newStatus: null };
+    }
+    
+    const targetDate = new Date(dateValue);
+    
+    // Check if it's time to advance (allow 1 hour buffer after the time)
+    const bufferTime = 60 * 60 * 1000; // 1 hour in ms
+    if (now.getTime() >= targetDate.getTime() - bufferTime) {
+        // Check if already at this status
+        if (currentStatus === transition.nextStatus) {
+            return { advanced: false, newStatus: null };
+        }
+        
+        await updateDoc(doc(db, "ipos", ipo.id), {
+            status: transition.nextStatus,
+            statusUpdatedAt: new Date().toISOString()
+        });
+        
+        return { advanced: true, newStatus: transition.nextStatus };
+    }
+    
+    return { advanced: false, newStatus: null };
+};
+
+// Check all IPOs and advance if needed
+export const checkAllIposAndAdvance = async (): Promise<{ checked: number; advanced: number }> => {
+    const ipos = await getIPOs();
+    let advanced = 0;
+    
+    for (const ipo of ipos) {
+        const result = await checkAndAdvanceIpoStatus(ipo);
+        if (result.advanced) {
+            advanced++;
+        }
+    }
+    
+    return { checked: ipos.length, advanced };
+};
+
+// Move IPO to stocks when listed
+export const moveIpoToStocks = async (ipo: any): Promise<void> => {
+    if (ipo.status !== "listeleme" && ipo.status !== "Listeleme") {
+        return;
+    }
+    
+    // Check if already in stocks
+    const stocksRef = collection(db, "stocks");
+    const q = query(stocksRef, where("ticker", "==", upper(ipo.ticker)));
+    const existing = await getDocs(q);
+    
+    if (existing.empty) {
+        // Add to stocks
+        const stockRef = doc(stocksRef);
+        await setDoc(stockRef, {
+            ticker: upper(ipo.ticker),
+            name: ipo.companyName,
+            price: ipo.price,
+            previousClose: ipo.price,
+            change: 0,
+            changePercent: 0,
+            volume: 0,
+            marketCap: 0,
+            source: "auto-listed",
+            listedAt: new Date().toISOString(),
+            createdAt: new Date().toISOString()
+        });
+    }
 };

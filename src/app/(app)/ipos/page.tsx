@@ -6,7 +6,7 @@ import { ChevronRight, PlusCircle, Pencil, Search, ChevronDown, ChevronUp, Alert
 import { AnimatePresence, motion } from "framer-motion";
 import OperationDashboard from "@/components/OperationDashboard";
 import IpoModal from "@/components/IpoModal";
-import { deleteIPO, processBatchOperation, saveIPO, getParticipationsForIPO, advanceIpoStatus } from "@/lib/data-service";
+import { deleteIPO, processBatchOperation, saveIPO, getParticipationsForIPO, advanceIpoStatus, checkAndAdvanceIpoStatus, moveIpoToStocks } from "@/lib/data-service";
 import { auth } from "@/lib/firebase";
 import { useFirebaseDataContext } from "@/components/FirebaseDataContext";
 import { IPO_STATUSES, CAN_PARTICIPATE_STATUSES, getStatusColor, getStatusLabel, getNextStatus, getStatusDescription } from "@/constants/ipoStatuses";
@@ -228,6 +228,31 @@ export default function IposPage() {
   const [showIpoModal, setShowIpoModal] = useState(false);
   const [isDiscovering, setIsDiscovering] = useState(false);
   const [searchQ, setSearchQ] = useState("");
+  const [isAutoChecking, setIsAutoChecking] = useState(false);
+
+  // Auto-check IPO statuses on load
+  useEffect(() => {
+    const checkStatuses = async () => {
+      if (isAutoChecking || !ipos || ipos.length === 0) return;
+      setIsAutoChecking(true);
+      
+      for (const ipo of ipos) {
+        // Check and advance status based on dates
+        const result = await checkAndAdvanceIpoStatus(ipo);
+        if (result.advanced) {
+          console.log(`Auto-advanced IPO ${ipo.ticker} to ${result.newStatus}`);
+          // If listed, move to stocks
+          if (result.newStatus === "listeleme") {
+            await moveIpoToStocks(ipo);
+          }
+        }
+      }
+      
+      setIsAutoChecking(false);
+    };
+    
+    checkStatuses();
+  }, [ipos]);
 
   const threeMonthsAgo = (() => {
     const d = new Date();
@@ -238,9 +263,12 @@ export default function IposPage() {
   const filteredIpos = ipos.filter((ipo: any) => {
     const status = String(ipo.status || "");
     
-    // Tüm önemli durumları göster - ama date filter uygula
-    const importantStatuses = ["Duyuru", "Onaylandı", "Talep Toplanıyor", "Yolda", "Dağıtıldı", "Borsada"];
-    if (!importantStatuses.includes(status)) return false;
+    // Show all 7 stages of IPO
+    const allStatuses = ["duyuru", "basvuru_acik", "talep_toplaniyor", "talep_kapandi", "tahsis", "sonuclar", "listeleme"];
+    // Also support legacy statuses
+    const legacyStatuses = ["Duyuru", "Onaylandı", "Talep Toplanıyor", "Yolda", "Dağıtıldı", "Borsada"];
+    
+    if (!allStatuses.includes(status) && !legacyStatuses.includes(status)) return false;
 
     const t = new Date(ipo.createdAt || ipo.updatedAt || 0).getTime();
     if (!Number.isFinite(t) || t <= 0) return false;

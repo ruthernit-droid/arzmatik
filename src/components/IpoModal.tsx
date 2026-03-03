@@ -18,11 +18,18 @@ export default function IpoModal({ ipo, onClose, onSave, onDelete }: IpoModalPro
         price: 0,
         ipoPrice: 0,
         totalOfferedLots: 0,
-        status: "Talep Toplanıyor",
-        demandEndDate: ""
+        status: "duyuru",
+        announcementDate: "",
+        applicationStartDate: "",
+        applicationEndDate: "",
+        demandEndDate: "",
+        demandEndTime: "17:00",
+        allocationDate: "",
+        resultDate: "",
+        listingDate: ""
     });
 
-    useEffect(() => {
+useEffect(() => {
         if (ipo) {
             setFormData({
                 companyName: ipo.companyName || ipo.name || "",
@@ -30,8 +37,15 @@ export default function IpoModal({ ipo, onClose, onSave, onDelete }: IpoModalPro
                 price: ipo.price || 0,
                 ipoPrice: Number(ipo.ipoPrice ?? ipo.price ?? 0),
                 totalOfferedLots: Number(ipo.totalOfferedLots || 0),
-                status: ipo.status || "Talep Toplanıyor",
-                demandEndDate: ipo.demandEndDate || ""
+                status: ipo.status || "duyuru",
+                announcementDate: ipo.announcementDate || "",
+                applicationStartDate: ipo.applicationStartDate || "",
+                applicationEndDate: ipo.applicationEndDate || "",
+                demandEndDate: ipo.demandEndDate ? ipo.demandEndDate.split('T')[0] : "",
+                demandEndTime: ipo.demandEndTime || "17:00",
+                allocationDate: ipo.allocationDate || "",
+                resultDate: ipo.resultDate || "",
+                listingDate: ipo.listingDate || ""
             });
         }
     }, [ipo]);
@@ -145,29 +159,97 @@ export default function IpoModal({ ipo, onClose, onSave, onDelete }: IpoModalPro
                                 </table>
                             </div>
                         </div>
-                        <div className="space-y-2">
+<div className="space-y-2">
                             <label className="text-xs font-black uppercase tracking-wider text-zinc-500">Halka Arz Durumu</label>
                             <select
                                 value={formData.status}
                                 onChange={e => setFormData({ ...formData, status: e.target.value })}
                                 className="w-full bg-zinc-900 border border-zinc-800 rounded-xl px-4 py-3 text-white focus:border-emerald-500 outline-none transition-all appearance-none"
                             >
-                                <option value="Yolda">Yolda</option>
-                                <option value="Talep Toplanıyor">Talep Toplanıyor</option>
-                                <option value="Liderlik">Liderlik</option>
-                                <option value="Borsada İşlem Görüyor">Borsada İşlem Görüyor</option>
-                                <option value="Tamamlandı">Tamamlandı</option>
-                                <option value="Kapandı">Kapandı</option>
+                                <option value="duyuru">1 - Duyuru</option>
+                                <option value="basvuru_acik">2 - Başvuru Açık</option>
+                                <option value="talep_toplaniyor">3 - Talep Toplanıyor</option>
+                                <option value="talep_kapandi">4 - Talep Kapandı</option>
+                                <option value="tahsis">5 - Tahsis</option>
+                                <option value="sonuclar">6 - Sonuçlar</option>
+                                <option value="listeleme">7 - Listeleme</option>
                             </select>
                         </div>
-                        <div className="space-y-2">
-                            <label className="text-xs font-black uppercase tracking-wider text-zinc-500">Talep Sonu / Tarih (Opsiyonel)</label>
-                            <input
-                                type="date"
-                                value={formData.demandEndDate}
-                                onChange={e => setFormData({ ...formData, demandEndDate: e.target.value })}
-                                className="w-full bg-zinc-900 border border-zinc-800 rounded-xl px-4 py-3 text-white focus:border-emerald-500 outline-none transition-all"
-                            />
+
+                        {/* Date Fields */}
+                        <div className="grid grid-cols-2 gap-4">
+                            <div className="space-y-2">
+                                <label className="text-xs font-black uppercase tracking-wider text-zinc-500">Duyuru Tarihi</label>
+                                <input
+                                    type="date"
+                                    value={formData.announcementDate}
+                                    onChange={e => setFormData({ ...formData, announcementDate: e.target.value })}
+                                    className="w-full bg-zinc-900 border border-zinc-800 rounded-xl px-4 py-3 text-white focus:border-emerald-500 outline-none transition-all"
+                                />
+                            </div>
+                            <div className="space-y-2">
+                                <label className="text-xs font-black uppercase tracking-wider text-zinc-500">Başvuru Başlangıç</label>
+                                <input
+                                    type="date"
+                                    value={formData.applicationStartDate}
+                                    onChange={e => setFormData({ ...formData, applicationStartDate: e.target.value })}
+                                    className="w-full bg-zinc-900 border border-zinc-800 rounded-xl px-4 py-3 text-white focus:border-emerald-500 outline-none transition-all"
+                                />
+                            </div>
+                            <div className="space-y-2">
+                                <label className="text-xs font-black uppercase tracking-wider text-zinc-500">Başvuru Bitiş</label>
+                                <input
+                                    type="date"
+                                    value={formData.applicationEndDate}
+                                    onChange={e => setFormData({ ...formData, applicationEndDate: e.target.value })}
+                                    className="w-full bg-zinc-900 border border-zinc-800 rounded-xl px-4 py-3 text-white focus:border-emerald-500 outline-none transition-all"
+                                />
+                            </div>
+                            <div className="space-y-2">
+                                <label className="text-xs font-black uppercase tracking-wider text-zinc-500">Talep Bitiş</label>
+                                <input
+                                    type="date"
+                                    value={formData.demandEndDate}
+                                    onChange={e => setFormData({ ...formData, demandEndDate: e.target.value })}
+                                    className="w-full bg-zinc-900 border border-zinc-800 rounded-xl px-4 py-3 text-white focus:border-emerald-500 outline-none transition-all"
+                                />
+                            </div>
+                            <div className="space-y-2">
+                                <label className="text-xs font-black uppercase tracking-wider text-zinc-500">Talep Bitiş Saat</label>
+                                <input
+                                    type="time"
+                                    value={formData.demandEndTime}
+                                    onChange={e => setFormData({ ...formData, demandEndTime: e.target.value })}
+                                    className="w-full bg-zinc-900 border border-zinc-800 rounded-xl px-4 py-3 text-white focus:border-emerald-500 outline-none transition-all"
+                                />
+                            </div>
+                            <div className="space-y-2">
+                                <label className="text-xs font-black uppercase tracking-wider text-zinc-500">Tahsis Tarihi</label>
+                                <input
+                                    type="date"
+                                    value={formData.allocationDate}
+                                    onChange={e => setFormData({ ...formData, allocationDate: e.target.value })}
+                                    className="w-full bg-zinc-900 border border-zinc-800 rounded-xl px-4 py-3 text-white focus:border-emerald-500 outline-none transition-all"
+                                />
+                            </div>
+                            <div className="space-y-2">
+                                <label className="text-xs font-black uppercase tracking-wider text-zinc-500">Sonuç Tarihi</label>
+                                <input
+                                    type="date"
+                                    value={formData.resultDate}
+                                    onChange={e => setFormData({ ...formData, resultDate: e.target.value })}
+                                    className="w-full bg-zinc-900 border border-zinc-800 rounded-xl px-4 py-3 text-white focus:border-emerald-500 outline-none transition-all"
+                                />
+                            </div>
+                            <div className="space-y-2">
+                                <label className="text-xs font-black uppercase tracking-wider text-zinc-500">Listeleme Tarihi</label>
+                                <input
+                                    type="date"
+                                    value={formData.listingDate}
+                                    onChange={e => setFormData({ ...formData, listingDate: e.target.value })}
+                                    className="w-full bg-zinc-900 border border-zinc-800 rounded-xl px-4 py-3 text-white focus:border-emerald-500 outline-none transition-all"
+                                />
+                            </div>
                         </div>
                     </div>
 
