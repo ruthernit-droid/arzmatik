@@ -281,7 +281,13 @@ export default function DayTradingPage() {
                     <p className="text-xs text-zinc-500">{account.bankName}</p>
                   </div>
                 </div>
-                <div className="flex items-center gap-2">
+                
+                <div className="flex items-center gap-3">
+                  <div className="text-right">
+                    <p className="text-[10px] text-zinc-500 uppercase">Bakiye</p>
+                    <p className="text-xs font-bold text-emerald-400">{(account.cashBalance || 0).toLocaleString("tr-TR", { maximumFractionDigits: 0 })} TL</p>
+                  </div>
+                  
                   {account.bankName && getBankLoginUrl(account.bankName.toLowerCase().replace(/[^a-z]/g, '')) && (
                     <button
                       onClick={(e) => {
@@ -291,18 +297,6 @@ export default function DayTradingPage() {
                       }}
                       className="p-1.5 bg-green-500/10 text-green-400 rounded-lg"
                       title="Banka/Giriş"
-                    >
-                      <ExternalLink className="w-3 h-3" />
-                    </button>
-                  )}
-                  {account.brokerageUrl && (
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        window.open(account.brokerageUrl, '_blank');
-                      }}
-                      className="p-1.5 bg-purple-500/10 text-purple-400 rounded-lg"
-                      title="Hisse Senedi"
                     >
                       <ExternalLink className="w-3 h-3" />
                     </button>
@@ -371,9 +365,31 @@ export default function DayTradingPage() {
                             }}
                             className="w-full bg-zinc-950 border border-zinc-800 rounded px-2 py-1 text-xs font-bold outline-none focus:border-emerald-500"
                           />
+                          {data?.requestedLots > 0 && (
+                            <div className="text-[10px] text-emerald-400 font-bold mt-1">
+                              = ₺{(data.requestedLots * (ipo?.price || 0)).toLocaleString("tr-TR", { maximumFractionDigits: 0 })}
+                            </div>
+                          )}
                         </div>
                       );
                     })}
+                  </div>
+                  
+                  <div className="mt-2 pt-2 border-t border-zinc-800 flex justify-between text-xs">
+                    <span className="text-zinc-500">Bu Hesap Toplam:</span>
+                    <span className="font-bold text-emerald-400">
+                      ₺{(() => {
+                        let cost = 0;
+                        selectedIpos.forEach(ipoId => {
+                          const d = accountData[account.id]?.[ipoId];
+                          const ipo = activeIpos.find((i: any) => i.id === ipoId);
+                          if (d?.requestedLots > 0) {
+                            cost += d.requestedLots * (ipo?.price || 0);
+                          }
+                        });
+                        return cost.toLocaleString("tr-TR", { maximumFractionDigits: 0 });
+                      })()}
+                    </span>
                   </div>
                 </div>
               )}
