@@ -10,7 +10,7 @@ import PieChart from "@/components/charts/PieChart";
 import StatCard from "@/components/ui/StatCard";
 
 function money(n: number) {
-  return Number(n || 0).toLocaleString("tr-TR", { style: "currency", currency: "TRY" });
+  return Number(n || 0).toLocaleString("tr-TR", { maximumFractionDigits: 0 }) + " TL";
 }
 
 export default function SummaryPage() {

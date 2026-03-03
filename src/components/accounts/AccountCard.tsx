@@ -111,7 +111,7 @@ export default function AccountCard({ account, onEdit, onDelete }: AccountCardPr
         <div className="text-xs">
           <span className="text-zinc-500">Bakiye: </span>
           <span className="font-bold text-emerald-400">
-            {Number(account.cashBalance || 0).toLocaleString("tr-TR")} TL
+            {Number(account.cashBalance || 0).toLocaleString("tr-TR", { maximumFractionDigits: 0 })} TL
           </span>
         </div>
 

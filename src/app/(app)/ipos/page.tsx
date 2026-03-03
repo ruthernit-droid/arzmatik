@@ -99,7 +99,7 @@ function IpoCard({ ipo, accounts, onEdit, onOpenPanel }: {
           <div className="flex items-center gap-4">
             <div className="text-right">
               <p className="text-xs text-zinc-500 uppercase tracking-widest font-black">Fiyat</p>
-              <p className="text-xl font-bold">{Number(ipo.price || 0).toLocaleString("tr-TR", { style: "currency", currency: "TRY" })}</p>
+              <p className="text-xl font-bold">{Number(ipo.price || 0).toLocaleString("tr-TR", { maximumFractionDigits: 0 })} TL</p>
             </div>
             
             <div className="flex flex-col gap-1">
@@ -185,7 +185,7 @@ function IpoCard({ ipo, accounts, onEdit, onOpenPanel }: {
                       <td className="p-2 font-mono text-xs text-zinc-400">{acc.accountNumber}</td>
                       <td className="p-2 font-bold text-sm">{acc.ownerName}</td>
                       <td className="p-2 text-right font-bold text-amber-400">{acc.requestedLots}</td>
-                      <td className="p-2 text-right font-mono text-xs">{(acc.requestedLots * (ipo.price || 0)).toLocaleString('tr-TR')} ₺</td>
+                      <td className="p-2 text-right font-mono text-xs">{(acc.requestedLots * (ipo.price || 0)).toLocaleString('tr-TR', { maximumFractionDigits: 0 })} TL</td>
                       <td className="p-2">
                         <span className={`text-[10px] font-black uppercase px-2 py-0.5 rounded ${
                           acc.status === 'Talepte' ? 'bg-amber-500/20 text-amber-400' :

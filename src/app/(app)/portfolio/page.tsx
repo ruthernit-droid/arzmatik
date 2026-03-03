@@ -67,7 +67,7 @@ function PortfolioCard({ item, ipo, onSell, isLoading }: { item: any; ipo: any; 
         </div>
         <div className="text-right">
           <p className={`font-bold text-lg ${pnl >= 0 ? "text-emerald-500" : "text-rose-500"}`}>
-            {pnl >= 0 ? "+" : ""}{pnl.toLocaleString("tr-TR")} TL
+            {pnl >= 0 ? "+" : ""}{pnl.toLocaleString("tr-TR", { maximumFractionDigits: 0 })} TL
           </p>
           <p className={`text-xs font-medium ${pnl >= 0 ? "text-emerald-500/70" : "text-rose-500/70"}`}>
             %{pnlPercent}
@@ -82,15 +82,15 @@ function PortfolioCard({ item, ipo, onSell, isLoading }: { item: any; ipo: any; 
         </div>
         <div>
           <p className="text-zinc-500 text-[10px] font-bold uppercase">Maliyet</p>
-          <p className="font-bold text-base text-zinc-300">{cost.toLocaleString("tr-TR")} TL</p>
+          <p className="font-bold text-base text-zinc-300">{cost.toLocaleString("tr-TR", { maximumFractionDigits: 0 })} TL</p>
         </div>
         <div>
           <p className="text-zinc-500 text-[10px] font-bold uppercase">Guncel Deger</p>
-          <p className="font-bold text-base text-emerald-400">{value.toLocaleString("tr-TR")} TL</p>
+          <p className="font-bold text-base text-emerald-400">{value.toLocaleString("tr-TR", { maximumFractionDigits: 0 })} TL</p>
         </div>
         <div>
           <p className="text-zinc-500 text-[10px] font-bold uppercase">Fiyat</p>
-          <p className="font-bold text-base">{price.toLocaleString("tr-TR")} TL</p>
+          <p className="font-bold text-base">{price.toLocaleString("tr-TR", { maximumFractionDigits: 0 })} TL</p>
         </div>
       </div>
 
