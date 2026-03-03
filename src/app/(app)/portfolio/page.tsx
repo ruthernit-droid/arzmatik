@@ -8,19 +8,12 @@ import {
   TrendingDown,
   TrendingUp,
   Plus,
-  ShoppingCart,
-  List,
-  Download,
-  Trash2,
   ArrowUpRight,
 } from "lucide-react";
 
 import SellDashboard from "@/components/SellDashboard";
 import SellSelectorModal from "@/components/SellSelectorModal";
 import AddHoldingModal from "@/components/AddHoldingModal";
-import BulkBuyModal from "@/components/BulkBuyModal";
-import StocksListModal from "@/components/StocksListModal";
-import ImportStocksModal from "@/components/ImportStocksModal";
 
 import { useFirebaseDataContext } from "@/components/FirebaseDataContext";
 import { cleanupUserData, updateIpoPrice } from "@/lib/data-service";
@@ -126,9 +119,6 @@ export default function PortfolioPage() {
   const [showSellModal, setShowSellModal] = useState(false);
   const [showSellSelector, setShowSellSelector] = useState(false);
   const [showAddHoldingModal, setShowAddHoldingModal] = useState(false);
-  const [showBulkBuyModal, setShowBulkBuyModal] = useState(false);
-  const [showStocksListModal, setShowStocksListModal] = useState(false);
-  const [showImportStocksModal, setShowImportStocksModal] = useState(false);
 
   const [isRefreshingPrices, setIsRefreshingPrices] = useState(false);
   const [openingSellKey, setOpeningSellKey] = useState<string | null>(null);
@@ -205,24 +195,6 @@ export default function PortfolioPage() {
           <Plus className="w-4 h-4" /> Ekle
         </button>
         <button
-          onClick={() => setShowBulkBuyModal(true)}
-          className="flex items-center gap-2 px-4 py-3 rounded-xl text-xs font-bold bg-blue-500/5 text-blue-300 border border-blue-500/20 whitespace-nowrap"
-        >
-          <ShoppingCart className="w-4 h-4" /> Toplu Al
-        </button>
-        <button
-          onClick={() => setShowStocksListModal(true)}
-          className="flex items-center gap-2 px-4 py-3 rounded-xl text-xs font-bold bg-zinc-800 text-zinc-400 border border-zinc-700 whitespace-nowrap"
-        >
-          <List className="w-4 h-4" /> Hisseler
-        </button>
-        <button
-          onClick={() => setShowImportStocksModal(true)}
-          className="flex items-center gap-2 px-4 py-3 rounded-xl text-xs font-bold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 whitespace-nowrap"
-        >
-          <Download className="w-4 h-4" /> Import
-        </button>
-        <button
           onClick={() => setShowSellSelector(true)}
           className="flex items-center gap-2 px-4 py-3 rounded-xl text-xs font-bold bg-rose-500/10 text-rose-400 border border-rose-500/20 whitespace-nowrap"
         >
@@ -239,18 +211,6 @@ export default function PortfolioPage() {
         >
           <RefreshCcw className={`w-4 h-4 ${isRefreshingPrices ? "animate-spin" : ""}`} />
           Fiyat
-        </button>
-        <button
-          onClick={async () => {
-            if (!user) return;
-            if (!confirm("Bos kayitlari sil?")) return;
-            const res = await cleanupUserData(user.uid, ipos as any[]);
-            await refreshData();
-            alert(`Temizlik tamamlandi.`);
-          }}
-          className="flex items-center gap-2 px-4 py-3 rounded-xl text-xs font-bold bg-zinc-800 text-zinc-500 border border-zinc-700 whitespace-nowrap"
-        >
-          <Trash2 className="w-4 h-4" />
         </button>
       </div>
 
@@ -301,24 +261,6 @@ export default function PortfolioPage() {
       <AnimatePresence>
         {showAddHoldingModal && user && (
           <AddHoldingModal userId={user.uid} accounts={accounts} ipos={ipos} onClose={() => setShowAddHoldingModal(false)} onSaved={() => refreshData()} />
-        )}
-      </AnimatePresence>
-
-      <AnimatePresence>
-        {showBulkBuyModal && user && (
-          <BulkBuyModal userId={user.uid} accounts={accounts} ipos={ipos} onClose={() => setShowBulkBuyModal(false)} onSaved={() => refreshData()} />
-        )}
-      </AnimatePresence>
-
-      <AnimatePresence>
-        {showStocksListModal && (
-          <StocksListModal ipos={ipos} onClose={() => setShowStocksListModal(false)} onAfterUpdate={() => refreshData()} />
-        )}
-      </AnimatePresence>
-
-      <AnimatePresence>
-        {showImportStocksModal && (
-          <ImportStocksModal ipos={ipos} onClose={() => setShowImportStocksModal(false)} onDone={() => refreshData()} />
         )}
       </AnimatePresence>
     </div>
