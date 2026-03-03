@@ -89,9 +89,14 @@ export const saveIPO = async (ipo: any): Promise<string> => {
         allocationDate: ipo.allocationDate || null,
         resultDate: ipo.resultDate || null,
         listingDate: ipo.listingDate || null,
+        dayEnabled: ipo.dayEnabled !== undefined ? Boolean(ipo.dayEnabled) : undefined,
+        recommendedLot: ipo.recommendedLot !== undefined ? Number(ipo.recommendedLot || 0) : undefined,
         updatedAt: new Date().toISOString(),
         ...(ipo.price !== undefined && ipo.price !== null ? { priceUpdatedAt: new Date().toISOString() } : {}),
     };
+
+    if (data.dayEnabled === undefined) delete data.dayEnabled;
+    if (data.recommendedLot === undefined) delete data.recommendedLot;
 
     if (!ipo.id) {
         data.createdAt = new Date().toISOString();
@@ -196,6 +201,50 @@ export const cleanupUserData = async (userId: string, ipos: any[] = []) => {
     return { migrated, deletedEmpty };
 };
 
+export const resetUserTradingData = async (userId: string) => {
+    const accountsSnap = await getDocs(collection(db, `users/${userId}/accounts`));
+    let deletedParticipations = 0;
+    let updatedAccounts = 0;
+
+    for (const accDoc of accountsSnap.docs) {
+        const accId = accDoc.id;
+        const pRef = collection(db, `users/${userId}/accounts/${accId}/participations`);
+        const pSnap = await getDocs(pRef);
+
+        let batch = writeBatch(db);
+        let opCount = 0;
+
+        for (const pDoc of pSnap.docs) {
+            batch.delete(doc(db, `users/${userId}/accounts/${accId}/participations/${pDoc.id}`));
+            deletedParticipations++;
+            opCount++;
+
+            if (opCount >= 450) {
+                await batch.commit();
+                batch = writeBatch(db);
+                opCount = 0;
+            }
+        }
+
+        batch.set(doc(db, `users/${userId}/accounts/${accId}`), {
+            cashBalance: 0,
+            updatedAt: new Date().toISOString(),
+        }, { merge: true });
+        opCount++;
+
+        if (opCount > 0) {
+            await batch.commit();
+        }
+
+        updatedAccounts++;
+    }
+
+    return {
+        updatedAccounts,
+        deletedParticipations,
+    };
+};
+
 export async function deleteIPO(id: string) {
     await deleteDoc(doc(db, 'ipos', id));
 }
@@ -281,6 +330,9 @@ export const processBatchOperation = async (
             purchaseType: acc.purchaseType || 'ipo',
             lotPrice: computedLotPrice,
             notes: acc.notes || '',
+            reasonCode: acc.reasonCode || '',
+            reasonNote: acc.reasonNote || '',
+            optOutConfirmed: Boolean(acc.optOutConfirmed || false),
             updatedAt: new Date().toISOString()
         }, { merge: true });
     }
@@ -291,13 +343,22 @@ export const processBatchOperation = async (
 export const sellParticipations = async (
     userId: string,
     participationId: string,
-    sellData: { accountId: string; sellLots: number; sellPrice: number; currentLots: number }[]
+    sellData: { accountId: string; sellLots: number; sellPrice: number; currentLots: number; lotPrice?: number; saleDate?: string }[]
 ) => {
     const batch = writeBatch(db);
 
     for (const item of sellData) {
-        const saleProceeds = item.sellLots * item.sellPrice;
-        const remainingLots = Math.max(0, Number(item.currentLots || 0) - Number(item.sellLots || 0));
+        const soldLots = Math.max(0, Number(item.sellLots || 0));
+        const soldPrice = Number(item.sellPrice || 0);
+        const costPrice = Math.max(0, Number(item.lotPrice || 0));
+        const currentLots = Math.max(0, Number(item.currentLots || 0));
+        const saleProceeds = soldLots * soldPrice;
+        const soldCost = soldLots * costPrice;
+        const remainingLots = Math.max(0, currentLots - soldLots);
+        const parsedSaleDate = item.saleDate ? new Date(item.saleDate) : null;
+        const saleDateIso = parsedSaleDate && Number.isFinite(parsedSaleDate.getTime())
+            ? parsedSaleDate.toISOString()
+            : new Date().toISOString();
 
         const accountRef = doc(db, `users/${userId}/accounts/${item.accountId}`);
         batch.update(accountRef, {
@@ -307,9 +368,13 @@ export const sellParticipations = async (
         const participationRef = doc(db, `users/${userId}/accounts/${item.accountId}/participations/${participationId}`);
         batch.update(participationRef, {
             status: remainingLots <= 0 ? 'Satıldı' : 'Dağıtıldı',
-            allottedLots: increment(-item.sellLots),
-            sellPrice: item.sellPrice,
-            saleDate: new Date().toISOString()
+            allottedLots: increment(-soldLots),
+            soldLotsTotal: increment(soldLots),
+            soldRevenueTotal: increment(saleProceeds),
+            soldCostTotal: increment(soldCost),
+            sellPrice: soldPrice,
+            saleDate: saleDateIso,
+            updatedAt: new Date().toISOString()
         });
     }
 

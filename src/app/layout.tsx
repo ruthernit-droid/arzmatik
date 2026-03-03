@@ -35,25 +35,6 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="tr">
-      <head>
-        <script
-          dangerouslySetInnerHTML={{
-            __html: `
-              if ('serviceWorker' in navigator) {
-                window.addEventListener('load', () => {
-                  navigator.serviceWorker.register('/sw.js')
-                    .then((registration) => {
-                      console.log('SW registered:', registration.scope);
-                    })
-                    .catch((error) => {
-                      console.log('SW registration failed:', error);
-                    });
-                });
-              }
-            `,
-          }}
-        />
-      </head>
       <body className="min-h-screen bg-[#09090b] text-zinc-50 antialiased">
         {children}
       </body>

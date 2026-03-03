@@ -1,9 +1,9 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import { X, Save, Trash2 } from "lucide-react";
 import { motion } from "framer-motion";
-import { BANKS, getBankLoginUrl } from "@/constants/banks";
+import { BANKS, getBankLoginUrl, Bank } from "@/constants/banks";
 
 interface AccountModalProps {
     account?: any;
@@ -26,11 +26,37 @@ export default function AccountModal({ account, onClose, onSave, onDelete }: Acc
     });
     const [isDeleting, setIsDeleting] = useState(false);
     const [showPassword, setShowPassword] = useState(false);
+    const [customBanks, setCustomBanks] = useState<Bank[]>([]);
+
+    const allBanks = useMemo(() => [...BANKS, ...customBanks], [customBanks]);
+
+    useEffect(() => {
+        if (typeof window === "undefined") return;
+        try {
+            const raw = window.localStorage.getItem("customBanks");
+            if (!raw) return;
+            const parsed = JSON.parse(raw);
+            if (Array.isArray(parsed)) {
+                const normalized = parsed
+                    .filter((b: any) => b && typeof b.id === "string" && typeof b.name === "string")
+                    .map((b: any) => ({
+                        id: String(b.id),
+                        name: String(b.name),
+                        shortName: String(b.shortName || b.name),
+                        loginUrl: String(b.loginUrl || ""),
+                        isCustom: true,
+                    }));
+                setCustomBanks(normalized);
+            }
+        } catch {
+            setCustomBanks([]);
+        }
+    }, []);
 
     useEffect(() => {
         if (account) {
             // Find bank by name match
-            const matchedBank = BANKS.find(b => 
+            const matchedBank = allBanks.find(b => 
                 account.bankName?.toLowerCase().includes(b.name.toLowerCase()) ||
                 b.name.toLowerCase().includes(account.bankName?.toLowerCase())
             );
@@ -47,10 +73,10 @@ export default function AccountModal({ account, onClose, onSave, onDelete }: Acc
                 isActive: account.isActive !== undefined ? account.isActive : true
             });
         }
-    }, [account]);
+    }, [account, allBanks]);
 
     const handleBankChange = (bankId: string) => {
-        const bank = BANKS.find(b => b.id === bankId);
+        const bank = allBanks.find(b => b.id === bankId);
         setFormData({
             ...formData,
             bankId,
@@ -90,8 +116,8 @@ export default function AccountModal({ account, onClose, onSave, onDelete }: Acc
                     </button>
                 </div>
 
-                <form onSubmit={handleSubmit} className="p-4 space-y-4">
-                    <div className="space-y-4">
+                <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto flex flex-col">
+                    <div className="p-4 space-y-4">
                         <div className="space-y-2">
                             <label className="text-xs font-bold uppercase tracking-wider text-zinc-500">Hesap Sahibi</label>
                             <input
@@ -110,7 +136,7 @@ export default function AccountModal({ account, onClose, onSave, onDelete }: Acc
                                 className="w-full h-14 bg-zinc-900 border border-zinc-800 rounded-xl px-4 text-white focus:border-emerald-500 outline-none transition-all text-lg"
                             >
                                 <option value="">Banka seçin...</option>
-                                {BANKS.map(bank => (
+                                {allBanks.map(bank => (
                                     <option key={bank.id} value={bank.id}>{bank.name}</option>
                                 ))}
                             </select>
@@ -203,7 +229,7 @@ export default function AccountModal({ account, onClose, onSave, onDelete }: Acc
                         <label htmlFor="isActive" className="text-sm text-zinc-400 cursor-pointer">Bu hesap aktif olarak halka arzlara katılsın mı?</label>
                     </div>
 
-                    <div className="flex justify-between items-center pt-4 border-t border-zinc-900 mt-4">
+                    <div className="sticky bottom-0 bg-zinc-950/95 backdrop-blur-sm p-4 border-t border-zinc-900 mt-auto flex justify-between items-center">
                         {account?.id && onDelete && (
                             <button
                                 type="button"

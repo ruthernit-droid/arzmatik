@@ -106,18 +106,24 @@ functions/src/
 ## Gecis Stratejisi (Adim Adim)
 
 ### Phase 1: PWA Optimizasyonu (1-2 gun)
-- [ ] Service worker config duzeltmesi
+- [x] Service worker config duzeltmesi (tek kayit akisi)
 - [ ] Offline fallback sayfalari
 - [ ] Cache stratejileri
 
 ### Phase 2: Frontend Modulerlestirme (3-5 gun)
-- [ ] Her sayfa icin ayri hook olusturma
-- [ ] Service katmanini ayirma
+- [x] Her sayfa icin ayri hook olusturma (temel hooklar var)
+- [x] Service katmanini ayirma (services klasoru aktif)
 - [ ] Componentleri ilgili klasorlere tasima
 
 ### Phase 3: Backend Modulerlestirme (2-3 gun)
-- [ ] Fonksiyonlari ayri dosyalara tasima
-- [ ] Her endpoint icin ayri dosya
+- [x] Fonksiyonlari ayri dosyalara tasima
+- [x] Her endpoint icin ayri dosya
+
+### Guncel Not (2026-03-03)
+- Islem Gunu ekraninda gunluk katilim raporu, katilamama sebep kodlari ve CSV disa aktarma eklendi.
+- Ayarlar ekranindaki varsayilan lot/durum degerleri Islem Gunu ekranina baglandi.
+- Ayarlar ekranindaki custom bankalar Hesap modalinda secilebilir hale getirildi.
+- PWA ikon dosyalari (192/512) eklendi ve SW kaydi tek noktadan devam ediyor.
 
 ---
 

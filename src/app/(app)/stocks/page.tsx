@@ -19,6 +19,7 @@ export default function StocksPage() {
   const { ipos, accounts, user, refreshData } = useFirebaseDataContext();
   const [q, setQ] = useState("");
   const [isUpdating, setIsUpdating] = useState(false);
+  const [updatingOneId, setUpdatingOneId] = useState<string | null>(null);
   const [progress, setProgress] = useState<{ done: number; total: number } | null>(null);
   const [editingStock, setEditingStock] = useState<any | null>(null);
   
@@ -46,14 +47,17 @@ export default function StocksPage() {
   }, [ipos, q]);
 
   const updateOne = async (id: string, ticker: string) => {
-    setIsUpdating(true);
+    setUpdatingOneId(id);
     try {
       const p = await fetchLatestPriceTwelve(ticker);
-      if (!p) return;
+      if (!p) {
+        alert(`${ticker} icin fiyat alinamadi.`);
+        return;
+      }
       await updateIpoPrice(id, p);
       await refreshData();
     } finally {
-      setIsUpdating(false);
+      setUpdatingOneId(null);
     }
   };
 
@@ -63,16 +67,21 @@ export default function StocksPage() {
     setProgress({ done: 0, total: rows.length });
     try {
       let done = 0;
+      let ok = 0;
       for (const r of rows) {
         try {
           const p = await fetchLatestPriceTwelve(r.ticker);
-          if (p) await updateIpoPrice(r.id, p);
+          if (p) {
+            await updateIpoPrice(r.id, p);
+            ok++;
+          }
         } finally {
           done++;
           setProgress({ done, total: rows.length });
         }
       }
       await refreshData();
+      alert(`Fiyat guncelleme tamamlandi: ${ok}/${rows.length}`);
     } finally {
       setIsUpdating(false);
       setProgress(null);
@@ -182,10 +191,10 @@ export default function StocksPage() {
               </button>
               <button
                 onClick={() => updateOne(r.id, r.ticker)}
-                disabled={isUpdating}
+                disabled={isUpdating || updatingOneId === r.id}
                 className="px-3 py-2 bg-emerald-600 hover:bg-emerald-500 rounded-lg text-xs font-bold text-white"
               >
-                <RefreshCcw className={`w-3 h-3 ${isUpdating ? "animate-spin" : ""}`} />
+                <RefreshCcw className={`w-3 h-3 ${(isUpdating || updatingOneId === r.id) ? "animate-spin" : ""}`} />
               </button>
             </div>
           </div>

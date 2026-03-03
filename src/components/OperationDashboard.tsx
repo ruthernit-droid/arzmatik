@@ -19,12 +19,13 @@ interface OperationProps {
     ipo: { id: string; name: string; price: number; totalOfferedLots?: number };
     accounts: any[];
     participations?: any[]; // Expected to contain previously saved participations, mapping accountId -> { requestedLots, allottedLots }
+    initialMode?: 'talep' | 'dagitim';
     onClose: () => void;
     onSave: (data: any, mode: 'talep' | 'dagitim') => void;
 }
 
-export default function OperationDashboard({ ipo, accounts, participations = [], onClose, onSave }: OperationProps) {
-    const [mode, setMode] = useState<'talep' | 'dagitim'>('talep');
+export default function OperationDashboard({ ipo, accounts, participations = [], initialMode = 'talep', onClose, onSave }: OperationProps) {
+    const [mode, setMode] = useState<'talep' | 'dagitim'>(initialMode);
     const [selectedAccounts, setSelectedAccounts] = useState<string[]>([]);
     const [batchLot, setBatchLot] = useState<number>(0);
     const [maxAllottedLot, setMaxAllottedLot] = useState<number>(0);

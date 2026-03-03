@@ -1,14 +1,14 @@
 import { onRequest } from "firebase-functions/v2/https";
 import { onSchedule } from "firebase-functions/v2/scheduler";
 import { defineSecret } from "firebase-functions/params";
-import { initializeApp } from "firebase-admin/app";
+import { getApps, initializeApp } from "firebase-admin/app";
 import { getFirestore } from "firebase-admin/firestore";
 
 import { handleStocks, handleQuote, handleImport, handleImportAll, writeIposFromStocksList } from "./api/stocks";
 import { handleDiscoverHalkarz } from "./api/ipo";
 import { tdListStocks, TD_EXCHANGE_DEFAULT } from "./utils/twelvedata";
 
-initializeApp();
+if (!getApps().length) initializeApp();
 const db = getFirestore();
 
 const TWELVEDATA_API_KEY = defineSecret("TWELVEDATA_API_KEY");

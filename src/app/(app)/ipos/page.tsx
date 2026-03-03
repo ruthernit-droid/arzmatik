@@ -1,15 +1,33 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo, useRef } from "react";
 import Link from "next/link";
 import { ChevronRight, PlusCircle, Pencil, Search, ChevronDown, ChevronUp, AlertCircle } from "lucide-react";
 import { AnimatePresence, motion } from "framer-motion";
 import OperationDashboard from "@/components/OperationDashboard";
+import SellDashboard from "@/components/SellDashboard";
+import BackfillWizardModal from "@/components/BackfillWizardModal";
 import IpoModal from "@/components/IpoModal";
 import { deleteIPO, processBatchOperation, saveIPO, getParticipationsForIPO, advanceIpoStatus, checkAndAdvanceIpoStatus, moveIpoToStocks } from "@/lib/data-service";
 import { auth } from "@/lib/firebase";
 import { useFirebaseDataContext } from "@/components/FirebaseDataContext";
-import { IPO_STATUSES, CAN_PARTICIPATE_STATUSES, getStatusColor, getStatusLabel, getNextStatus, getStatusDescription } from "@/constants/ipoStatuses";
+import { IPO_STATUSES, CAN_PARTICIPATE_STATUSES, getStatusColor, getStatusLabel, getNextStatus, getStatusDescription, normalizeIpoStatus } from "@/constants/ipoStatuses";
+
+function parseIpoReferenceTs(ipo: any): number {
+  const candidates = [
+    ipo?.demandEndDate,
+    ipo?.applicationEndDate,
+    ipo?.applicationStartDate,
+    ipo?.announcementDate,
+    ipo?.createdAt,
+    ipo?.updatedAt,
+  ];
+  for (const value of candidates) {
+    const ts = new Date(String(value || "")).getTime();
+    if (Number.isFinite(ts) && ts > 0) return ts;
+  }
+  return 0;
+}
 
 function StatusBadge({ status }: { status: string }) {
   const colorClass = getStatusColor(status);
@@ -22,19 +40,26 @@ function StatusBadge({ status }: { status: string }) {
   );
 }
 
-function IpoCard({ ipo, accounts, onEdit, onOpenPanel }: { 
+function IpoCard({ ipo, accounts, onEdit, onOpenPanel, onOpenBackfillDemand, onOpenBackfillDistribution, onOpenBackfillSell, onOpenBackfillWizard }: { 
   ipo: any; 
   accounts: any[]; 
   onEdit: () => void; 
   onOpenPanel: () => void;
+  onOpenBackfillDemand: () => void;
+  onOpenBackfillDistribution: () => void;
+  onOpenBackfillSell: () => void;
+  onOpenBackfillWizard: () => void;
 }) {
   const [isExpanded, setIsExpanded] = useState(false);
   const [accountData, setAccountData] = useState<any[]>([]);
   const [isAdvancing, setIsAdvancing] = useState(false);
-  
-  const canParticipate = CAN_PARTICIPATE_STATUSES.includes(ipo.status);
-  const nextStatus = getNextStatus(ipo.status);
-  const statusDesc = getStatusDescription(ipo.status);
+
+  const normalizedStatus = normalizeIpoStatus(String(ipo.status || ""));
+  const demandEndTs = new Date(String(ipo.demandEndDate || "")).getTime();
+  const demandStillOpen = !(Number.isFinite(demandEndTs) && demandEndTs > 0 && demandEndTs <= Date.now());
+  const canParticipate = CAN_PARTICIPATE_STATUSES.includes(normalizedStatus) && demandStillOpen;
+  const nextStatus = getNextStatus(normalizedStatus);
+  const statusDesc = getStatusDescription(normalizedStatus);
 
   useEffect(() => {
     if (isExpanded) {
@@ -58,6 +83,16 @@ function IpoCard({ ipo, accounts, onEdit, onOpenPanel }: {
 
   const totalRequested = accountData.reduce((sum, acc) => sum + (acc.requestedLots || 0), 0);
   const totalCost = totalRequested * (ipo.price || 0);
+  const recommendedLot = Number(ipo.recommendedLot || 0);
+
+  const tavanRows = Array.from({ length: 13 }, (_, idx) => {
+    const day = idx + 1;
+    const basePrice = Number(ipo.price || 0);
+    const projectedPrice = basePrice * Math.pow(1.1, day);
+    const profitPct = (Math.pow(1.1, day) - 1) * 100;
+    const profitAmount = Math.max(0, Number(recommendedLot || 0)) * (projectedPrice - basePrice);
+    return { day, projectedPrice, profitPct, profitAmount };
+  });
 
   const handleAdvanceStatus = async () => {
     if (!nextStatus || !confirm(`Durumu ilerletmek istiyor musunuz?\n${getStatusLabel(ipo.status)} → ${getStatusLabel(nextStatus)}`)) return;
@@ -153,10 +188,15 @@ function IpoCard({ ipo, accounts, onEdit, onOpenPanel }: {
           ) : (
             <div className="flex items-center gap-2 px-3 py-2 bg-zinc-800 rounded-xl text-xs text-zinc-500">
               <AlertCircle className="w-4 h-4" />
-              {ipo.status === "Borsada" ? "Hisse olarak takip ediliyor" : "Dağıtım yapıldı"}
+              {normalizedStatus === "listeleme"
+                ? "Listelendi: Dagitim sonuclari tamamlandi mi kontrol edin"
+                : normalizedStatus === "sonuclar"
+                ? "Sonuclar aciklandi: Dagitimi hesaplara girin"
+                : "Talep donemi disinda"}
             </div>
           )}
         </div>
+
       </div>
 
       <AnimatePresence>
@@ -167,7 +207,71 @@ function IpoCard({ ipo, accounts, onEdit, onOpenPanel }: {
             exit={{ height: 0, opacity: 0 }}
             className="border-t border-zinc-800 bg-zinc-950/50 overflow-hidden"
           >
-            <div className="p-4 overflow-x-auto">
+            <div className="p-4 space-y-4 overflow-x-auto">
+              <div className="p-3 rounded-xl border border-zinc-800 bg-zinc-950/40">
+                <div className="flex items-center justify-between mb-2">
+                  <h5 className="text-xs font-black text-zinc-300 uppercase tracking-widest">Olasi Tavan K/Z (13 Gun)</h5>
+                  <span className="text-[10px] text-zinc-500">Gunluk tavan varsayimi: %10</span>
+                </div>
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left min-w-[420px]">
+                    <thead>
+                      <tr className="text-[10px] uppercase tracking-widest text-zinc-500 border-b border-zinc-800">
+                        <th className="py-1 pr-2">Tavan</th>
+                        <th className="py-1 px-2 text-right">Tahmini Fiyat</th>
+                        <th className="py-1 px-2 text-right">Kar %</th>
+                        <th className="py-1 pl-2 text-right">Kar (TL)</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {tavanRows.map((row) => (
+                        <tr key={row.day} className="border-b border-zinc-900 text-xs">
+                          <td className="py-1 pr-2 font-bold">{row.day}. Tavan</td>
+                          <td className="py-1 px-2 text-right font-mono">{row.projectedPrice.toLocaleString("tr-TR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                          <td className="py-1 px-2 text-right text-emerald-300">%{row.profitPct.toLocaleString("tr-TR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                          <td className="py-1 pl-2 text-right text-emerald-400 font-bold">{row.profitAmount.toLocaleString("tr-TR", { maximumFractionDigits: 0 })}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+
+              <div className="p-3 rounded-xl border border-zinc-800 bg-zinc-950/40 space-y-2">
+                <h5 className="text-xs font-black text-zinc-300 uppercase tracking-widest">Gecmise Donuk Duzeltme</h5>
+                <p className="text-[11px] text-zinc-500">Reelde yapilip projeye islenmeyen islemleri buradan isleyin.</p>
+                <div className="flex flex-wrap gap-2">
+                  <button
+                    type="button"
+                    onClick={onOpenBackfillWizard}
+                    className="px-3 py-1.5 rounded-lg border border-emerald-500/30 bg-emerald-500/10 text-emerald-300 text-[11px] font-bold"
+                  >
+                    Duzeltme Sihirbazi
+                  </button>
+                  <button
+                    type="button"
+                    onClick={onOpenBackfillDemand}
+                    className="px-3 py-1.5 rounded-lg border border-amber-500/30 bg-amber-500/10 text-amber-300 text-[11px] font-bold"
+                  >
+                    Talep Duzelt
+                  </button>
+                  <button
+                    type="button"
+                    onClick={onOpenBackfillDistribution}
+                    className="px-3 py-1.5 rounded-lg border border-blue-500/30 bg-blue-500/10 text-blue-300 text-[11px] font-bold"
+                  >
+                    Dagitim Duzelt
+                  </button>
+                  <button
+                    type="button"
+                    onClick={onOpenBackfillSell}
+                    className="px-3 py-1.5 rounded-lg border border-rose-500/30 bg-rose-500/10 text-rose-300 text-[11px] font-bold"
+                  >
+                    Satis Duzelt
+                  </button>
+                </div>
+              </div>
+
               <table className="w-full text-left">
                 <thead>
                   <tr className="text-zinc-500 text-[10px] font-black uppercase tracking-widest border-b border-zinc-800">
@@ -224,67 +328,106 @@ function IpoCard({ ipo, accounts, onEdit, onOpenPanel }: {
 export default function IposPage() {
   const { ipos, accounts, user, refreshData } = useFirebaseDataContext();
   const [activeIpo, setActiveIpo] = useState<any | null>(null);
+  const [operationMode, setOperationMode] = useState<'talep' | 'dagitim'>('talep');
   const [editingIpo, setEditingIpo] = useState<any | null>(null);
   const [showIpoModal, setShowIpoModal] = useState(false);
   const [isDiscovering, setIsDiscovering] = useState(false);
   const [searchQ, setSearchQ] = useState("");
-  const [isAutoChecking, setIsAutoChecking] = useState(false);
+  const autoCheckingRef = useRef(false);
+  const [showStockList, setShowStockList] = useState(false);
+  const [showPastIpos, setShowPastIpos] = useState(false);
+  const [activeSellTicker, setActiveSellTicker] = useState<string | null>(null);
+  const [activeSellParticipationId, setActiveSellParticipationId] = useState<string | null>(null);
+  const [activeSellParticipations, setActiveSellParticipations] = useState<any[]>([]);
+  const [showSellModal, setShowSellModal] = useState(false);
+  const [wizardIpo, setWizardIpo] = useState<any | null>(null);
 
   // Auto-check IPO statuses on load
   useEffect(() => {
     const checkStatuses = async () => {
-      if (isAutoChecking || !ipos || ipos.length === 0) return;
-      setIsAutoChecking(true);
-      
-      for (const ipo of ipos) {
-        // Check and advance status based on dates
-        const result = await checkAndAdvanceIpoStatus(ipo);
-        if (result.advanced) {
-          console.log(`Auto-advanced IPO ${ipo.ticker} to ${result.newStatus}`);
-          // If listed, move to stocks
-          if (result.newStatus === "listeleme") {
-            await moveIpoToStocks(ipo);
+      if (autoCheckingRef.current || !ipos || ipos.length === 0) return;
+      autoCheckingRef.current = true;
+
+      try {
+        for (const ipo of ipos) {
+          const result = await checkAndAdvanceIpoStatus(ipo);
+          if (result.advanced) {
+            console.log(`Auto-advanced IPO ${ipo.ticker} to ${result.newStatus}`);
+            if (result.newStatus === "listeleme") {
+              await moveIpoToStocks(ipo);
+            }
           }
         }
+      } finally {
+        autoCheckingRef.current = false;
       }
-      
-      setIsAutoChecking(false);
     };
     
     checkStatuses();
   }, [ipos]);
 
-  const threeMonthsAgo = (() => {
+  const oneMonthAgoTs = useMemo(() => {
     const d = new Date();
-    d.setMonth(d.getMonth() - 3);
+    d.setMonth(d.getMonth() - 1);
     return d.getTime();
-  })();
+  }, []);
 
-  const filteredIpos = ipos.filter((ipo: any) => {
-    const status = String(ipo.status || "");
-    
-    // Show all 7 stages of IPO
-    const allStatuses = ["duyuru", "basvuru_acik", "talep_toplaniyor", "talep_kapandi", "tahsis", "sonuclar", "listeleme"];
-    // Also support legacy statuses
-    const legacyStatuses = ["Duyuru", "Onaylandı", "Talep Toplanıyor", "Yolda", "Dağıtıldı", "Borsada"];
-    
-    if (!allStatuses.includes(status) && !legacyStatuses.includes(status)) return false;
+  const stockRows = useMemo(() => {
+    const query = searchQ.trim().toLowerCase();
+    const rows = (ipos || [])
+      .filter((i: any) => {
+        const rawStatus = String(i.status || "");
+        const normalized = normalizeIpoStatus(rawStatus);
+        return (
+          normalized === "listeleme" ||
+          rawStatus === "Borsada İşlem Görüyor" ||
+          String(i.source || "") === "twelvedata"
+        );
+      })
+      .map((i: any) => ({
+        id: i.id,
+        ticker: String(i.ticker || "").toUpperCase(),
+        companyName: String(i.companyName || ""),
+        price: Number(i.price || 0),
+        status: String(i.status || ""),
+      }))
+      .sort((a: any, b: any) => a.ticker.localeCompare(b.ticker, "tr"));
 
-    const t = new Date(ipo.createdAt || ipo.updatedAt || 0).getTime();
-    if (!Number.isFinite(t) || t <= 0) return false;
-    if (t < threeMonthsAgo) return false;
+    if (!query) return rows;
+    return rows.filter((r: any) =>
+      r.ticker.toLowerCase().includes(query) || r.companyName.toLowerCase().includes(query)
+    );
+  }, [ipos, searchQ]);
 
-    if (searchQ) {
-      const q = searchQ.toLowerCase();
-      const ticker = String(ipo.ticker || "").toLowerCase();
-      const companyName = String(ipo.companyName || "").toLowerCase();
-      if (!ticker.includes(q) && !companyName.includes(q)) {
+  const stockTickerSet = useMemo(() => {
+    return new Set(stockRows.map((s: any) => String(s.ticker || "").toUpperCase()).filter(Boolean));
+  }, [stockRows]);
+
+  const filteredIpos = useMemo(() => {
+    const q = searchQ.trim().toLowerCase();
+    return (ipos || []).filter((ipo: any) => {
+      const status = normalizeIpoStatus(String(ipo.status || ""));
+      const allStatuses = IPO_STATUSES.map((s) => s.id);
+      if (!allStatuses.includes(status)) return false;
+
+      if (status === "listeleme") return false;
+
+      const ticker = String(ipo.ticker || "").toUpperCase();
+      if (ticker && stockTickerSet.has(ticker)) return false;
+
+      const refTs = parseIpoReferenceTs(ipo);
+      if (!showPastIpos && Number.isFinite(refTs) && refTs > 0 && refTs < oneMonthAgoTs) {
         return false;
       }
-    }
-    
-    return true;
-  });
+
+      if (q) {
+        const companyName = String(ipo.companyName || "").toLowerCase();
+        if (!ticker.toLowerCase().includes(q) && !companyName.includes(q)) return false;
+      }
+
+      return true;
+    });
+  }, [ipos, searchQ, stockTickerSet, showPastIpos, oneMonthAgoTs]);
 
   const onSaveIpo = async (data: any) => {
     await saveIPO(data);
@@ -301,18 +444,33 @@ export default function IposPage() {
     await refreshData();
   };
 
+  const openBackfillOperation = (ipo: any, mode: 'talep' | 'dagitim') => {
+    setOperationMode(mode);
+    setActiveIpo(ipo);
+  };
+
+  const openBackfillSell = async (ipo: any) => {
+    if (!user) return;
+    const parts = await getParticipationsForIPO(user.uid, accounts.map((a: any) => a.id), ipo.id, ipo.ticker);
+    setActiveSellParticipations(parts.map((p: any) => ({ ...p, price: Number(ipo.price || 0) })));
+    setActiveSellTicker(String(ipo.ticker || ipo.companyName || "HISSE"));
+    setActiveSellParticipationId(ipo.id);
+    setShowSellModal(true);
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
         <div className="flex items-center gap-3 flex-wrap">
-          <h2 className="text-xl font-bold">Halka Arzlar (Son 3 Ay)</h2>
+          <h2 className="text-xl font-bold">H. Arz ve Hisseler</h2>
           <span className="text-zinc-500 font-normal text-sm">({filteredIpos.length})</span>
-          <Link
-            href="/stocks"
-            className="px-3 py-1 rounded-lg text-[10px] font-black uppercase tracking-widest border bg-zinc-950 border-zinc-800 text-zinc-500 hover:text-white hover:bg-zinc-900 transition-all"
+          <button
+            type="button"
+            onClick={() => setShowPastIpos((prev) => !prev)}
+            className={`px-3 py-1 rounded-lg text-[10px] font-black uppercase tracking-widest border transition-all ${showPastIpos ? "bg-amber-500/10 border-amber-500/30 text-amber-400" : "bg-zinc-950 border-zinc-800 text-zinc-500 hover:text-white hover:bg-zinc-900"}`}
           >
-            Tum Hisseler
-          </Link>
+            {showPastIpos ? "Tarih Filtresi Acik" : "Son 1 Ay"}
+          </button>
         </div>
         
         <div className="relative">
@@ -321,7 +479,7 @@ export default function IposPage() {
             type="text"
             value={searchQ}
             onChange={(e) => setSearchQ(e.target.value)}
-            placeholder="Halka arz ara..."
+            placeholder="H. arz veya hisse ara..."
             className="pl-10 pr-4 py-2 bg-zinc-900 border border-zinc-800 rounded-xl text-sm outline-none focus:border-emerald-500 transition-all w-64"
           />
         </div>
@@ -361,7 +519,7 @@ export default function IposPage() {
                 }
                 if (!res.ok) throw new Error(data?.error || `HTTP ${res.status}`);
                 await refreshData();
-                alert(`Tarama tamamlandi. Bulunan: ${data.discovered}, Yeni: ${data.created}, Guncellenen: ${data.updated}`);
+                alert(`Tarama tamamlandi. Bulunan: ${data.discovered}, Yeni: ${data.created}, Guncellenen: ${data.updated}, Hisse listesinde oldugu icin atlanan: ${data.skippedListed || 0}, Fiyatli: ${data.withPrice || 0}, Tarihli: ${data.withDates || 0}`);
               } catch (e: any) {
                 console.error(e);
                 alert(`Yeni arz taramasi basarisiz: ${String(e?.message || e)}`);
@@ -377,7 +535,17 @@ export default function IposPage() {
         </div>
       </div>
 
-      <div className="space-y-4">
+      <section className="space-y-4">
+        <div className="p-3 rounded-xl border border-zinc-800 bg-zinc-900/30 text-xs text-zinc-400 space-y-1">
+          <p className="font-bold text-zinc-300">Kullanim Senaryosu - Gecmise Donuk Duzeltme</p>
+          <p>1) Reelde katildiniz ama projeye islemediniz: karti acin, <span className="text-amber-300">Talep Duzelt</span> ile talebi girin.</p>
+          <p>2) Dagitim/satis da olduysa: sirayla <span className="text-blue-300">Dagitim Duzelt</span> ve <span className="text-rose-300">Satis Duzelt</span> islemlerini yapin.</p>
+          <p>3) Tarih takvimi gecmis olsa bile duzeltme butonlariyla tek hesap veya tum hesaplara geriye donuk isleyebilirsiniz.</p>
+        </div>
+        <div className="flex items-center justify-between">
+          <h3 className="text-sm font-black text-zinc-300 uppercase tracking-widest">Halka Arzlar (Son 1 Ay)</h3>
+          <span className="text-xs text-zinc-500">Talep donemi bitenler burada gizlenir</span>
+        </div>
         {filteredIpos.map((ipo: any) => (
           <IpoCard 
             key={ipo.id} 
@@ -387,26 +555,97 @@ export default function IposPage() {
               setEditingIpo(ipo);
               setShowIpoModal(true);
             }}
-            onOpenPanel={() => setActiveIpo(ipo)}
+            onOpenPanel={() => {
+              setOperationMode('talep');
+              setActiveIpo(ipo);
+            }}
+            onOpenBackfillDemand={() => openBackfillOperation(ipo, 'talep')}
+            onOpenBackfillDistribution={() => openBackfillOperation(ipo, 'dagitim')}
+            onOpenBackfillSell={() => openBackfillSell(ipo).catch((e) => { console.error(e); alert("Satis duzeltme acilamadi"); })}
+            onOpenBackfillWizard={() => setWizardIpo(ipo)}
           />
         ))}
         {filteredIpos.length === 0 && (
           <div className="col-span-full p-10 text-center rounded-3xl border border-zinc-800 bg-zinc-900/20 text-zinc-500 font-bold">
-            Son 3 ay icinde yeni halka arz kaydi yok. Tum hisseler icin <Link href="/stocks" className="text-emerald-400">/stocks</Link> sayfasini kullan.
+            Son 1 ay icin gosterilecek halka arz kaydi yok.
           </div>
         )}
-      </div>
+      </section>
+
+      <section className="space-y-3">
+        <button
+          type="button"
+          onClick={() => setShowStockList((prev) => !prev)}
+          className="w-full px-4 py-3 rounded-2xl bg-zinc-900/40 border border-zinc-800 flex items-center justify-between"
+        >
+          <span className="text-sm font-black">Gercek Hisse Listesi ({stockRows.length})</span>
+          <span className="text-xs text-zinc-500">{showStockList ? "Gizle" : "Ac"}</span>
+        </button>
+
+        {showStockList && (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            {stockRows.map((s: any) => (
+              <Link
+                key={s.id}
+                href="/stocks"
+                className="p-4 rounded-xl bg-zinc-900/40 border border-zinc-800 hover:border-zinc-700 transition-all"
+              >
+                <div className="flex items-center justify-between gap-3">
+                  <div>
+                    <p className="font-black text-base">{s.ticker}</p>
+                    <p className="text-xs text-zinc-500 truncate">{s.companyName}</p>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-sm font-bold text-emerald-400">{Number(s.price || 0).toLocaleString("tr-TR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} TL</p>
+                    <p className="text-[10px] text-zinc-500">{String(s.status || "-")}</p>
+                  </div>
+                </div>
+              </Link>
+            ))}
+            {stockRows.length === 0 && (
+              <div className="p-6 rounded-xl bg-zinc-900/20 border border-zinc-800 text-sm text-zinc-500">
+                Hisse listesinde gosterilecek kayit yok.
+              </div>
+            )}
+          </div>
+        )}
+      </section>
 
       <AnimatePresence>
         {activeIpo && user && Array.isArray(accounts) && accounts.length > 0 && (
           <OperationDashboard
             ipo={{ id: activeIpo.id, name: activeIpo.companyName, price: activeIpo.price, totalOfferedLots: activeIpo.totalOfferedLots }}
             accounts={accounts}
+            initialMode={operationMode}
             onClose={() => setActiveIpo(null)}
             onSave={async (data, mode) => {
               await processBatchOperation(user.uid, activeIpo.id, activeIpo.price, data, mode);
               await refreshData();
             }}
+          />
+        )}
+      </AnimatePresence>
+
+      <AnimatePresence>
+        {showSellModal && activeSellTicker && activeSellParticipationId && (
+          <SellDashboard
+            participationId={activeSellParticipationId}
+            ticker={activeSellTicker}
+            accounts={accounts}
+            participations={activeSellParticipations}
+            onClose={() => setShowSellModal(false)}
+            onSave={() => refreshData()}
+          />
+        )}
+      </AnimatePresence>
+
+      <AnimatePresence>
+        {wizardIpo && (
+          <BackfillWizardModal
+            ipo={{ id: wizardIpo.id, ticker: wizardIpo.ticker, companyName: wizardIpo.companyName, price: Number(wizardIpo.price || 0) }}
+            accounts={accounts}
+            onClose={() => setWizardIpo(null)}
+            onSaved={refreshData}
           />
         )}
       </AnimatePresence>

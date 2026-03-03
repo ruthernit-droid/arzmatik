@@ -18,6 +18,8 @@ export default function IpoModal({ ipo, onClose, onSave, onDelete }: IpoModalPro
         price: 0,
         ipoPrice: 0,
         totalOfferedLots: 0,
+        recommendedLot: 0,
+        dayEnabled: true,
         status: "duyuru",
         announcementDate: "",
         applicationStartDate: "",
@@ -37,6 +39,8 @@ useEffect(() => {
                 price: ipo.price || 0,
                 ipoPrice: Number(ipo.ipoPrice ?? ipo.price ?? 0),
                 totalOfferedLots: Number(ipo.totalOfferedLots || 0),
+                recommendedLot: Number(ipo.recommendedLot || 0),
+                dayEnabled: ipo.dayEnabled !== false,
                 status: ipo.status || "duyuru",
                 announcementDate: ipo.announcementDate || "",
                 applicationStartDate: ipo.applicationStartDate || "",
@@ -146,6 +150,7 @@ useEffect(() => {
                                         <tr className="text-zinc-500 text-[10px] font-black uppercase tracking-widest border-b border-zinc-800">
                                             <th className="p-3">Basvuru Sayisi</th>
                                             <th className="p-3 text-right">Hesap Basi Olasi Lot</th>
+                                            <th className="p-3 text-right">Secim</th>
                                         </tr>
                                     </thead>
                                     <tbody>
@@ -153,10 +158,43 @@ useEffect(() => {
                                             <tr key={r.applicants} className="border-b border-zinc-900/70">
                                                 <td className="p-3 text-xs font-bold text-zinc-300">{r.applicants.toLocaleString('tr-TR')}</td>
                                                 <td className="p-3 text-right text-xs font-black text-emerald-400">{r.perAccount.toLocaleString('tr-TR')} Lot</td>
+                                                <td className="p-3 text-right">
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => setFormData({ ...formData, recommendedLot: r.perAccount })}
+                                                        className={`px-2 py-1 rounded text-[10px] font-black border ${Number(formData.recommendedLot || 0) === r.perAccount ? "bg-blue-500/20 border-blue-500/40 text-blue-300" : "bg-zinc-900 border-zinc-700 text-zinc-400"}`}
+                                                    >
+                                                        Oner
+                                                    </button>
+                                                </td>
                                             </tr>
                                         ))}
                                     </tbody>
                                 </table>
+                            </div>
+                        </div>
+                        <div className="grid grid-cols-2 gap-4">
+                            <div className="space-y-2">
+                                <label className="text-xs font-black uppercase tracking-wider text-zinc-500">Tavsiye Lot (Islem Gunu)</label>
+                                <input
+                                    type="number"
+                                    value={formData.recommendedLot || ""}
+                                    onChange={e => setFormData({ ...formData, recommendedLot: Number(e.target.value || 0) })}
+                                    className="w-full bg-zinc-900 border border-zinc-800 rounded-xl px-4 py-3 text-white focus:border-emerald-500 outline-none transition-all"
+                                    placeholder="Orn: 47"
+                                />
+                            </div>
+                            <div className="space-y-2">
+                                <label className="text-xs font-black uppercase tracking-wider text-zinc-500">Islem Gunune Dahil</label>
+                                <div className="h-[50px] bg-zinc-900 border border-zinc-800 rounded-xl px-4 flex items-center justify-between">
+                                    <span className="text-sm text-zinc-300 font-bold">Bu arz aktif secilsin</span>
+                                    <input
+                                        type="checkbox"
+                                        checked={Boolean(formData.dayEnabled)}
+                                        onChange={e => setFormData({ ...formData, dayEnabled: e.target.checked })}
+                                        className="w-4 h-4 accent-emerald-500"
+                                    />
+                                </div>
                             </div>
                         </div>
 <div className="space-y-2">

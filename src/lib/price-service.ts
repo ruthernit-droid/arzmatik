@@ -62,14 +62,32 @@ export async function fetchLatestPriceTwelve(ticker: string): Promise<number | n
   try {
     const { auth } = await import("@/lib/firebase");
     const token = await auth?.currentUser?.getIdToken?.();
-    const res = await fetch(`/api/twelve/quote?ticker=${encodeURIComponent(t)}`, {
-      cache: "no-store",
-      headers: token ? { Authorization: `Bearer ${token}` } : undefined,
-    });
-    if (!res.ok) throw new Error(`HTTP ${res.status}`);
-    const data = await res.json();
-    const price = Number(data?.price);
-    return Number.isFinite(price) && price > 0 ? price : null;
+    const endpoints = [
+      `/api/twelve/quote?ticker=${encodeURIComponent(t)}`,
+      `${process.env.NEXT_PUBLIC_API_BASE_URL || "https://api-dqj6bhtbda-ew.a.run.app"}/api/twelve/quote?ticker=${encodeURIComponent(t)}`,
+    ];
+
+    for (const endpoint of endpoints) {
+      try {
+        const res = await fetch(endpoint, {
+          cache: "no-store",
+          headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+        });
+        const text = await res.text();
+        let data: any = null;
+        try {
+          data = JSON.parse(text);
+        } catch {
+          data = null;
+        }
+        if (!res.ok || !data) continue;
+        const price = Number(data?.price);
+        if (Number.isFinite(price) && price > 0) return price;
+      } catch {
+        // try next endpoint
+      }
+    }
+    return null;
   } catch {
     // Dev fallback (Next dev server has no Firebase Functions rewrite).
     return fetchLatestPrice(t);

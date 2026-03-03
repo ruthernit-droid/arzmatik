@@ -1,17 +1,13 @@
 "use client";
 
 import React, { useState, useMemo, useEffect } from "react";
-import { collection, getDocs, query, where, orderBy } from "firebase/firestore";
+import { collection, getDocs } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { useFirebaseDataContext } from "@/components/FirebaseDataContext";
-import { Search, Filter, TrendingUp, TrendingDown, Calendar, RefreshCcw } from "lucide-react";
+import { Search, RefreshCcw } from "lucide-react";
 
 function money(n: number) {
   return Number(n || 0).toLocaleString("tr-TR", { maximumFractionDigits: 0 }) + " TL";
-}
-
-function moneyWithDecimals(n: number) {
-  return Number(n || 0).toLocaleString("tr-TR", { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + " TL";
 }
 
 export default function HistoryPage() {
@@ -39,7 +35,7 @@ export default function HistoryPage() {
             ownerName: acc.ownerName,
             bankName: acc.bankName,
             ticker: (ipo?.ticker || d.id) as string,
-            ipoName: ipo?.name || "-",
+            ipoName: ipo?.companyName || "-",
             ...data,
           });
         });
@@ -94,12 +90,18 @@ export default function HistoryPage() {
   const stats = useMemo(() => {
     const total = filteredData.length;
     const sold = filteredData.filter((p: any) => p.status === "Satıldı").length;
-    const holding = filteredData.filter((p: any) => p.status === "Hissede").length;
-    const cancelled = filteredData.filter((p: any) => p.status === "İptal" || p.status === "Katılmadı").length;
+    const holding = filteredData.filter((p: any) => p.status === "Hissede" || p.status === "Dağıtıldı").length;
+    const cancelled = filteredData.filter((p: any) =>
+      p.status === "İptal" ||
+      p.status === "Katılmadı" ||
+      p.status === "Nakit Yetersiz" ||
+      p.status === "Giriş Yapılamıyor" ||
+      p.status === "Ulaşılamıyor"
+    ).length;
     
     const totalProfit = filteredData.reduce((sum: number, p: any) => {
-      const revenue = Number(p.soldLotsTotal || 0) * Number(p.sellPrice || 0);
-      const cost = Number(p.allottedLots || 0) * Number(p.lotPrice || 0);
+      const revenue = Number(p.soldRevenueTotal || (Number(p.soldLotsTotal || 0) * Number(p.sellPrice || 0)));
+      const cost = Number(p.soldCostTotal || (Number(p.soldLotsTotal || 0) * Number(p.lotPrice || 0)));
       return sum + (revenue - cost);
     }, 0);
 
@@ -206,15 +208,15 @@ export default function HistoryPage() {
                 </tr>
               ) : (
                 filteredData.map((p, idx) => {
-                  const cost = Number(p.allottedLots || 0) * Number(p.lotPrice || 0);
-                  const revenue = Number(p.soldLotsTotal || 0) * Number(p.sellPrice || 0);
+                  const cost = Number(p.soldCostTotal || (Number(p.soldLotsTotal || 0) * Number(p.lotPrice || 0)));
+                  const revenue = Number(p.soldRevenueTotal || (Number(p.soldLotsTotal || 0) * Number(p.sellPrice || 0)));
                   const profit = revenue - cost;
                   const isProfit = profit >= 0;
                   
                   return (
                     <tr key={`${p.accountId}_${p.id}_${idx}`} className="hover:bg-zinc-900/30 transition-all">
                       <td className="p-4 text-xs text-zinc-500 font-bold whitespace-nowrap">
-                        {p.updatedAt ? new Date(p.updatedAt).toLocaleDateString('tr-TR') : '-'}
+                        {(p.saleDate || p.updatedAt) ? new Date(p.saleDate || p.updatedAt).toLocaleDateString('tr-TR') : '-'}
                       </td>
                       <td className="p-4 text-xs">
                         <div className="font-bold text-white">{p.ownerName}</div>
@@ -233,10 +235,11 @@ export default function HistoryPage() {
                         <span className={`px-2 py-1 rounded-md ${
                           p.status === 'Satıldı' ? 'bg-emerald-500/20 text-emerald-400' :
                           p.status === 'Hissede' ? 'bg-blue-500/20 text-blue-400' :
-                          p.status === 'İptal' || p.status === 'Katılmadı' ? 'bg-rose-500/20 text-rose-400' :
-                          'bg-zinc-700/30 text-zinc-400'
+                           p.status === 'İptal' || p.status === 'Katılmadı' ? 'bg-rose-500/20 text-rose-400' :
+                           p.status === 'Nakit Yetersiz' || p.status === 'Giriş Yapılamıyor' || p.status === 'Ulaşılamıyor' ? 'bg-amber-500/20 text-amber-400' :
+                           'bg-zinc-700/30 text-zinc-400'
                         }`}>
-                          {p.status || '-'}
+                          {p.status === 'Dağıtıldı' ? 'Hissede' : (p.status || '-')}
                         </span>
                       </td>
                     </tr>

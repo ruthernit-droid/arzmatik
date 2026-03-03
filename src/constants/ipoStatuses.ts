@@ -20,52 +20,69 @@ export const IPO_STATUSES: { id: string; label: string; color: string; descripti
 // Legacy status mapping for backward compatibility
 export const LEGACY_STATUS_MAP: Record<string, string> = {
   "Duyuru": "duyuru",
+  "duyuru": "duyuru",
   "Onaylandı": "basvuru_acik",
+  "Basvuru Acik": "basvuru_acik",
+  "Başvuru Açık": "basvuru_acik",
   "Talep Toplanıyor": "talep_toplaniyor",
+  "Talep Toplaniyor": "talep_toplaniyor",
   "Yolda": "talep_toplaniyor",
+  "Talep Kapandı": "talep_kapandi",
+  "Talep Kapandi": "talep_kapandi",
+  "Tahsis": "tahsis",
+  "Sonuçlar": "sonuclar",
+  "Sonuclar": "sonuclar",
   "Dağıtıldı": "sonuclar",
   "Borsada": "listeleme",
+  "Borsada İşlem Görüyor": "listeleme",
+  "Borsada Islem Goruyor": "listeleme",
+  "Listeleme": "listeleme",
   "Kapandı": "listeleme",
+  "Kapandi": "listeleme",
 };
 
 export const CAN_PARTICIPATE_STATUSES = ["basvuru_acik", "talep_toplaniyor"];
 export const IS_ACTIVE_STATUSES = ["duyuru", "basvuru_acik", "talep_toplaniyor", "talep_kapandi", "tahsis"];
 
+export const normalizeIpoStatus = (status: string): string => {
+  const raw = String(status || "").trim();
+  if (!raw) return "";
+
+  const direct = IPO_STATUSES.find((s) => s.id === raw);
+  if (direct) return direct.id;
+
+  const byLabel = IPO_STATUSES.find((s) => s.label === raw);
+  if (byLabel) return byLabel.id;
+
+  const legacy = LEGACY_STATUS_MAP[raw];
+  if (legacy) return legacy;
+
+  return raw;
+};
+
 export const getStatusColor = (status: string): string => {
-  // Try to find by new ID first
-  let found = IPO_STATUSES.find(s => s.id === status);
+  const normalized = normalizeIpoStatus(status);
+  const found = IPO_STATUSES.find(s => s.id === normalized);
   if (found) return found.color;
-  
-  // Try legacy mapping
-  const newStatus = LEGACY_STATUS_MAP[status];
-  if (newStatus) {
-    found = IPO_STATUSES.find(s => s.id === newStatus);
-    if (found) return found.color;
-  }
-  
   return "bg-zinc-500/20 text-zinc-400 border-zinc-500/30";
 };
 
 export const getStatusLabel = (status: string): string => {
-  let found = IPO_STATUSES.find(s => s.id === status);
+  const normalized = normalizeIpoStatus(status);
+  const found = IPO_STATUSES.find(s => s.id === normalized);
   if (found) return found.label;
-  
-  const newStatus = LEGACY_STATUS_MAP[status];
-  if (newStatus) {
-    found = IPO_STATUSES.find(s => s.id === newStatus);
-    if (found) return found.label;
-  }
-  
   return status;
 };
 
 export const getNextStatus = (currentStatus: string): string | null => {
-  const currentIndex = IPO_STATUSES.findIndex(s => s.id === currentStatus || s.label === currentStatus);
+  const normalized = normalizeIpoStatus(currentStatus);
+  const currentIndex = IPO_STATUSES.findIndex(s => s.id === normalized);
   if (currentIndex === -1 || currentIndex === IPO_STATUSES.length - 1) return null;
   return IPO_STATUSES[currentIndex + 1].id;
 };
 
 export const getStatusDescription = (status: string): string => {
-  const found = IPO_STATUSES.find(s => s.id === status);
+  const normalized = normalizeIpoStatus(status);
+  const found = IPO_STATUSES.find(s => s.id === normalized);
   return found?.description || "";
 };

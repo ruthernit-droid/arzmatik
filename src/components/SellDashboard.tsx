@@ -23,6 +23,7 @@ interface SellProps {
 export default function SellDashboard({ participationId, ticker, accounts, participations, onClose, onSave }: SellProps) {
     const [sellPrice, setSellPrice] = useState<number>(0);
     const [batchMode, setBatchMode] = useState(true);
+    const [saleDate, setSaleDate] = useState<string>(() => new Date().toISOString().slice(0, 10));
     const [sellData, setSellData] = useState<any[]>(
         participations.filter(p => p.allottedLots > 0).map(p => {
             const acc = accounts.find(a => a.id === p.accountId) || {};
@@ -64,7 +65,9 @@ export default function SellDashboard({ participationId, ticker, accounts, parti
             accountId: s.id,
             sellLots: s.sellLots,
             sellPrice: batchMode ? sellPrice : s.sellPrice,
-            currentLots: s.allottedLots
+            currentLots: s.allottedLots,
+            lotPrice: s.costPrice,
+            saleDate
         }));
 
         try {
@@ -147,6 +150,15 @@ export default function SellDashboard({ participationId, ticker, accounts, parti
                             )}
                         </div>
                         <div className="flex flex-col justify-end">
+                            <div className="mb-3">
+                                <label className="block text-xs font-bold text-zinc-500 mb-2">SATIS TARIHI</label>
+                                <input
+                                    type="date"
+                                    value={saleDate}
+                                    onChange={(e) => setSaleDate(e.target.value)}
+                                    className="w-full bg-zinc-950 border border-zinc-800 rounded-xl py-2.5 px-3 text-white outline-none focus:border-rose-500 transition-all font-bold text-sm"
+                                />
+                            </div>
                             <div className="flex items-center gap-3 bg-zinc-950 p-3 rounded-xl border border-zinc-800 text-amber-500">
                                 <Percent className="w-5 h-5" />
                                 <div>

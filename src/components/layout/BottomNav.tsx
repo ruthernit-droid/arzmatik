@@ -3,12 +3,11 @@
 import React from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Home, Users, TrendingUp, Wallet, Settings, History, BarChart3 } from "lucide-react";
+import { Home, TrendingUp, Settings, History, BarChart3 } from "lucide-react";
 
 const navItems = [
   { href: "/", icon: Home, label: "Ana Sayfa" },
-  { href: "/accounts", icon: Users, label: "Hesaplar" },
-  { href: "/ipos", icon: TrendingUp, label: "Arzlar" },
+  { href: "/ipos", icon: TrendingUp, label: "H. Arz ve Hisseler" },
   { href: "/stocks", icon: BarChart3, label: "Hisseler" },
   { href: "/history", icon: History, label: "Gecmis" },
   { href: "/settings", icon: Settings, label: "Ayarlar" },

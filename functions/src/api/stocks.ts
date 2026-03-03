@@ -1,9 +1,11 @@
 import { getFirestore } from "firebase-admin/firestore";
 import { getAuth } from "firebase-admin/auth";
+import { getApps, initializeApp } from "firebase-admin/app";
 import { defineSecret } from "firebase-functions/params";
 import { tdListStocks, tdQuote, pickCompanyName, normalizeSymbol, bistTickerFromSymbol, TD_EXCHANGE_DEFAULT } from "../utils/twelvedata";
 import { cors, getUidFromRequest, cacheGet, cacheSet, dayKey, asNum as helpersAsNum } from "../utils/helpers";
 
+if (!getApps().length) initializeApp();
 const db = getFirestore();
 const TWELVEDATA_API_KEY = defineSecret("TWELVEDATA_API_KEY");
 

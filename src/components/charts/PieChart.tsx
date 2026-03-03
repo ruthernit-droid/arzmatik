@@ -21,16 +21,14 @@ export default function PieChart({ data, size = 200 }: PieChartProps) {
     );
   }
 
-  let currentAngle = 0;
   const radius = size / 2;
   const center = radius;
 
-  const slices = data.map((item) => {
+  const slices = data.reduce((acc, item) => {
     const percentage = item.value / total;
     const angle = percentage * 360;
-    const startAngle = currentAngle;
-    const endAngle = currentAngle + angle;
-    currentAngle = endAngle;
+    const startAngle = acc.currentAngle;
+    const endAngle = acc.currentAngle + angle;
 
     const startRad = (startAngle - 90) * (Math.PI / 180);
     const endRad = (endAngle - 90) * (Math.PI / 180);
@@ -49,14 +47,19 @@ export default function PieChart({ data, size = 200 }: PieChartProps) {
       `Z`
     ].join(" ");
 
-    return {
+    const slice = {
       path: pathData,
       color: item.color,
       label: item.label,
       value: item.value,
       percentage: (percentage * 100).toFixed(1)
     };
-  });
+
+    return {
+      currentAngle: endAngle,
+      slices: [...acc.slices, slice],
+    };
+  }, { currentAngle: 0, slices: [] as { path: string; color: string; label: string; value: number; percentage: string }[] }).slices;
 
   return (
     <div className="flex items-center gap-6">

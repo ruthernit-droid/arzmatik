@@ -21,13 +21,13 @@ import {
   Moon,
   Sun,
   TrendingUp,
-  Users,
   PieChart,
   Settings,
 } from "lucide-react";
 
 import { auth } from "@/lib/firebase";
 import { FirebaseDataProvider, useFirebaseDataContext } from "@/components/FirebaseDataContext";
+import PWAInstallPrompt from "@/components/PWAInstallPrompt";
 
 function NavLink({ href, icon, label }: { href: string; icon: React.ReactNode; label: string }) {
   const pathname = usePathname();
@@ -53,6 +53,7 @@ function Shell({ children }: { children: React.ReactNode }) {
   const [email, setEmail] = React.useState("");
   const [password, setPassword] = React.useState("");
   const [registerMode, setRegisterMode] = React.useState(false);
+  const [stuckOverlay, setStuckOverlay] = React.useState(false);
 
   React.useEffect(() => {
     (async () => {
@@ -65,6 +66,37 @@ function Shell({ children }: { children: React.ReactNode }) {
       }
     })();
   }, []);
+
+  React.useEffect(() => {
+    const detect = () => {
+      if (typeof document === "undefined") return;
+      const overlays = Array.from(document.querySelectorAll("div.fixed.inset-0")) as HTMLDivElement[];
+      const blocking = overlays.filter((el) => {
+        const cls = el.className || "";
+        const hasDarkBg = cls.includes("bg-black/") || cls.includes("bg-black");
+        const hasDialogChild = !!el.querySelector(".relative");
+        return hasDarkBg && !hasDialogChild;
+      });
+      setStuckOverlay(blocking.length > 0);
+    };
+
+    const t = window.setTimeout(detect, 120);
+    return () => window.clearTimeout(t);
+  }, [pathname]);
+
+  const clearStuckOverlays = () => {
+    if (typeof document === "undefined") return;
+    const overlays = Array.from(document.querySelectorAll("div.fixed.inset-0")) as HTMLDivElement[];
+    overlays.forEach((el) => {
+      const cls = el.className || "";
+      const hasDarkBg = cls.includes("bg-black/") || cls.includes("bg-black");
+      const hasDialogChild = !!el.querySelector(".relative");
+      if (hasDarkBg && !hasDialogChild) {
+        el.remove();
+      }
+    });
+    setStuckOverlay(false);
+  };
 
   const handleLogin = async () => {
     const provider = new GoogleAuthProvider();
@@ -235,12 +267,22 @@ function Shell({ children }: { children: React.ReactNode }) {
         <div className="flex items-center justify-around h-16 px-2">
           <NavLink href="/portfolio" icon={<LayoutDashboard className="w-5 h-5" />} label="Portfoy" />
           <NavLink href="/summary" icon={<PieChart className="w-5 h-5" />} label="Ozet" />
-          <NavLink href="/accounts" icon={<Users className="w-5 h-5" />} label="Hesaplar" />
-          <NavLink href="/ipos" icon={<Box className="w-5 h-5" />} label="Arz" />
+          <NavLink href="/ipos" icon={<Box className="w-5 h-5" />} label="H. Arz ve Hisseler" />
           <NavLink href="/day" icon={<TrendingUp className="w-5 h-5" />} label="Islem" />
           <NavLink href="/settings" icon={<Settings className="w-5 h-5" />} label="Ayarlar" />
         </div>
       </nav>
+
+      {stuckOverlay && (
+        <button
+          onClick={clearStuckOverlays}
+          className="fixed top-16 right-3 z-[9999] h-9 px-3 rounded-lg bg-rose-600 text-white text-xs font-bold shadow-lg"
+        >
+          Ekrani Ac
+        </button>
+      )}
+
+      <PWAInstallPrompt />
     </div>
   );
 }
