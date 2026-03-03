@@ -88,7 +88,7 @@ useEffect(() => {
                     </button>
                 </div>
 
-                <form onSubmit={handleSubmit} className="p-8 space-y-6">
+<form onSubmit={handleSubmit} className="p-8 space-y-6 overflow-y-auto max-h-[70vh]">
                     <div className="space-y-4">
                         <div className="space-y-2">
                             <label className="text-xs font-black uppercase tracking-wider text-zinc-500">Şirket Ünvanı</label>

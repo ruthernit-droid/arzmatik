@@ -13,6 +13,10 @@ function money(n: number) {
   return Number(n || 0).toLocaleString("tr-TR", { maximumFractionDigits: 0 }) + " TL";
 }
 
+function moneyWithDecimals(n: number) {
+  return Number(n || 0).toLocaleString("tr-TR", { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + " TL";
+}
+
 export default function SummaryPage() {
   const { accounts, ipos, portfolioItems, user } = useFirebaseDataContext();
 

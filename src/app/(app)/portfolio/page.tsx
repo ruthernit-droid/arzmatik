@@ -92,7 +92,7 @@ function PortfolioCard({ item, ipo, onSell, isLoading }: { item: any; ipo: any; 
         </div>
         <div>
           <p className="text-zinc-500 text-[10px] font-bold uppercase">Fiyat</p>
-          <p className="font-bold text-base">{price.toLocaleString("tr-TR", { maximumFractionDigits: 0 })} TL</p>
+          <p className="font-bold text-base">{price.toLocaleString("tr-TR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} TL</p>
         </div>
       </div>
 

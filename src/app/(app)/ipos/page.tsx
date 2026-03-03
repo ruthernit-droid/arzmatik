@@ -99,7 +99,7 @@ function IpoCard({ ipo, accounts, onEdit, onOpenPanel }: {
           <div className="flex items-center gap-4">
             <div className="text-right">
               <p className="text-xs text-zinc-500 uppercase tracking-widest font-black">Fiyat</p>
-              <p className="text-xl font-bold">{Number(ipo.price || 0).toLocaleString("tr-TR", { maximumFractionDigits: 0 })} TL</p>
+              <p className="text-xl font-bold">{Number(ipo.price || 0).toLocaleString("tr-TR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} TL</p>
             </div>
             
             <div className="flex flex-col gap-1">

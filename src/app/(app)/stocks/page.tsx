@@ -111,7 +111,7 @@ export default function StocksPage() {
                 <p className="font-bold text-lg">{r.ticker}</p>
                 <p className="text-xs text-zinc-500 truncate max-w-[150px]">{r.companyName}</p>
               </div>
-              <p className="text-lg font-bold text-emerald-400">{Number(r.price || 0).toLocaleString("tr-TR", { maximumFractionDigits: 0 })} TL</p>
+              <p className="text-lg font-bold text-emerald-400">{Number(r.price || 0).toLocaleString("tr-TR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} TL</p>
             </div>
             
             <div className="flex items-center justify-between text-xs text-zinc-500 mb-3">

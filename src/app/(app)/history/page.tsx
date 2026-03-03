@@ -10,6 +10,10 @@ function money(n: number) {
   return Number(n || 0).toLocaleString("tr-TR", { maximumFractionDigits: 0 }) + " TL";
 }
 
+function moneyWithDecimals(n: number) {
+  return Number(n || 0).toLocaleString("tr-TR", { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + " TL";
+}
+
 export default function HistoryPage() {
   const { accounts, ipos, user } = useFirebaseDataContext();
   const [isLoading, setIsLoading] = useState(false);

@@ -200,7 +200,7 @@ export default function DayTradingPage() {
             >
               <span className="flex items-center gap-2">
                 {selectedIpos.includes(ipo.id) && <Check className="w-3 h-3" />}
-                {ipo.ticker} - ₺{Number(ipo.price || 0).toLocaleString("tr-TR", { maximumFractionDigits: 0 })}
+                {ipo.ticker} - ₺{Number(ipo.price || 0).toLocaleString("tr-TR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
               </span>
             </button>
           ))}
@@ -348,7 +348,7 @@ export default function DayTradingPage() {
                         >
                           <div className="flex items-center justify-between mb-1">
                             <span className="text-xs font-bold">{ipo?.ticker}</span>
-                            <span className="text-[10px] text-zinc-500">₺{Number(ipo?.price || 0).toLocaleString("tr-TR", { maximumFractionDigits: 0 })}</span>
+                            <span className="text-[10px] text-zinc-500">₺{Number(ipo?.price || 0).toLocaleString("tr-TR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                           </div>
                           
                           <input
