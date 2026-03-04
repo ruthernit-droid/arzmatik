@@ -1,8 +1,8 @@
 "use client";
 
 import React, { useMemo, useState } from "react";
-import { collection, getDocs } from "firebase/firestore";
-import { RefreshCcw, X, TrendingUp, TrendingDown, Wallet, PiggyBank } from "lucide-react";
+import { collection, getDocs, doc, updateDoc, addDoc, setDoc } from "firebase/firestore";
+import { RefreshCcw, X, TrendingUp, TrendingDown, Wallet, PiggyBank, Plus, Minus, Edit, ArrowUpRight, ArrowDownRight } from "lucide-react";
 
 import { useFirebaseDataContext } from "@/components/FirebaseDataContext";
 import { db } from "@/lib/firebase";
@@ -29,7 +29,14 @@ export default function SummaryPage() {
     }, 0);
     const totalValue = totalCash + totalStockValue;
     const pnl = totalStockValue - totalCost;
-    return { totalCash, totalCost, totalStockValue, totalValue, pnl };
+    
+    const totalInvested = accounts.reduce((sum, a: any) => sum + Number(a.demand || 0), 0);
+    const activeIposCount = ipos.filter((i: any) => {
+      const s = String(i.status || "").toLowerCase();
+      return s.includes("talep") || s.includes("basvuru");
+    }).length;
+    
+    return { totalCash, totalCost, totalStockValue, totalValue, pnl, totalInvested, activeIposCount };
   }, [accounts, ipos, portfolioItems]);
 
   // Grafik verileri
@@ -56,6 +63,85 @@ export default function SummaryPage() {
   const [selectedAccount, setSelectedAccount] = useState<any | null>(null);
   const [detailLoading, setDetailLoading] = useState(false);
   const [detailRows, setDetailRows] = useState<any[]>([]);
+  const [actionMode, setActionMode] = useState<'none' | 'fix' | 'add' | 'sell' | 'cash'>('none');
+  const [selectedRow, setSelectedRow] = useState<any | null>(null);
+  const [isRefreshingPrices, setIsRefreshingPrices] = useState(false);
+
+  const handleCashAdjustment = async (amount: number) => {
+    if (!user || !selectedAccount) return;
+    if (!confirm(`${amount > 0 ? 'Ekleme' : 'Çıkarma'} yapmak istediğinize emin misiniz?\nTutar: ${Math.abs(amount)} TL`)) return;
+    
+    try {
+      const accRef = doc(db, `users/${user.uid}/accounts/${selectedAccount.id}`);
+      await updateDoc(accRef, {
+        cashBalance: (selectedAccount.cashBalance || 0) + amount
+      });
+      alert("Bakiye güncellendi!");
+      setSelectedAccount({ ...selectedAccount, cashBalance: (selectedAccount.cashBalance || 0) + amount });
+    } catch (e) {
+      alert("Hata: " + e);
+    }
+  };
+
+  const handleAddStock = async () => {
+    if (!user || !selectedAccount) return;
+    const ticker = prompt("Hisse kodu (örn: THYAO):");
+    if (!ticker) return;
+    const lots = Number(prompt("Lot sayısı:"));
+    if (!lots || lots <= 0) return;
+    const price = Number(prompt("Alış fiyatı:"));
+    if (!price || price <= 0) return;
+
+    try {
+      const pRef = doc(db, `users/${user.uid}/accounts/${selectedAccount.id}/participations/${ticker.toUpperCase()}`);
+      await setDoc(pRef, {
+        ticker: ticker.toUpperCase(),
+        allottedLots: lots,
+        lotPrice: price,
+        purchaseType: 'portfolio',
+        status: 'Hissede',
+        requestedLots: 0,
+        createdAt: new Date().toISOString()
+      });
+      const accRef = doc(db, `users/${user.uid}/accounts/${selectedAccount.id}`);
+      await updateDoc(accRef, {
+        cashBalance: (selectedAccount.cashBalance || 0) - (lots * price)
+      });
+      alert("Hisse eklendi!");
+      openAccountDetail(selectedAccount);
+    } catch (e) {
+      alert("Hata: " + e);
+    }
+  };
+
+  const handleFixLot = async (row: any, newLots: number) => {
+    if (!user || !selectedAccount) return;
+    if (!confirm(`Lot düzeltmek istediğinize emin misiniz?\n${row.ticker}: ${row.allottedLots} -> ${newLots}`)) return;
+
+    try {
+      const pRef = doc(db, `users/${user.uid}/accounts/${selectedAccount.id}/participations/${row.id}`);
+      await updateDoc(pRef, {
+        allottedLots: newLots,
+        updatedAt: new Date().toISOString()
+      });
+      alert("Lot düzeltildi!");
+      openAccountDetail(selectedAccount);
+    } catch (e) {
+      alert("Hata: " + e);
+    }
+  };
+
+  const refreshPrices = async () => {
+    setIsRefreshingPrices(true);
+    try {
+      // This would ideally call an API, but for now we'll just reload
+      if (confirm("Fiyatları güncellemek için sayfayı yenilemek gerekiyor. Devam etmek istiyor musunuz?")) {
+        window.location.reload();
+      }
+    } finally {
+      setIsRefreshingPrices(false);
+    }
+  };
 
   const openAccountDetail = async (acc: any) => {
     if (!user) return;
@@ -143,23 +229,30 @@ export default function SummaryPage() {
         <p className="text-zinc-500 font-bold text-sm">Tum hesaplarin nakit/hisse durumunu ve son islemleri gor.</p>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <div className="bg-zinc-900/50 border border-zinc-800 p-6 rounded-3xl">
-          <p className="text-zinc-500 text-xs font-bold uppercase tracking-widest mb-1">Toplam Varlik</p>
-          <p className="text-2xl font-black">{money(totals.totalValue)}</p>
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 gap-4">
+        <div className="bg-zinc-900/50 border border-zinc-800 p-4 rounded-2xl">
+          <p className="text-zinc-500 text-[10px] font-bold uppercase tracking-widest mb-1">Toplam Varlik</p>
+          <p className="text-xl font-black">{money(totals.totalValue)}</p>
         </div>
-        <div className="bg-zinc-900/50 border border-zinc-800 p-6 rounded-3xl">
-          <p className="text-zinc-500 text-xs font-bold uppercase tracking-widest mb-1">Toplam Nakit</p>
-          <p className="text-2xl font-black">{money(totals.totalCash)}</p>
+        <div className="bg-zinc-900/50 border border-zinc-800 p-4 rounded-2xl">
+          <p className="text-zinc-500 text-[10px] font-bold uppercase tracking-widest mb-1">Toplam Nakit</p>
+          <p className="text-xl font-black">{money(totals.totalCash)}</p>
         </div>
-        <div className="bg-zinc-900/50 border border-zinc-800 p-6 rounded-3xl">
-          <p className="text-zinc-500 text-xs font-bold uppercase tracking-widest mb-1">Toplam Hisse Degeri</p>
-          <p className="text-2xl font-black">{money(totals.totalStockValue)}</p>
+        <div className="bg-zinc-900/50 border border-zinc-800 p-4 rounded-2xl">
+          <p className="text-zinc-500 text-[10px] font-bold uppercase tracking-widest mb-1">Hisse Degeri</p>
+          <p className="text-xl font-black">{money(totals.totalStockValue)}</p>
         </div>
-        <div className="bg-zinc-900/50 border border-zinc-800 p-6 rounded-3xl">
-          <p className="text-zinc-500 text-xs font-bold uppercase tracking-widest mb-1">Kar/Zarar</p>
-          <p className={`text-2xl font-black ${totals.pnl >= 0 ? "text-emerald-400" : "text-rose-400"}`}>{money(totals.pnl)}</p>
-          <p className="text-xs text-zinc-500 font-bold mt-1">Maliyet: {money(totals.totalCost)}</p>
+        <div className="bg-zinc-900/50 border border-zinc-800 p-4 rounded-2xl">
+          <p className="text-zinc-500 text-[10px] font-bold uppercase tracking-widest mb-1">Kar/Zarar</p>
+          <p className={`text-xl font-black ${totals.pnl >= 0 ? "text-emerald-400" : "text-rose-400"}`}>{money(totals.pnl)}</p>
+        </div>
+        <div className="bg-zinc-900/50 border border-zinc-800 p-4 rounded-2xl">
+          <p className="text-zinc-500 text-[10px] font-bold uppercase tracking-widest mb-1">Aktif Arz</p>
+          <p className="text-xl font-black text-amber-400">{totals.activeIposCount}</p>
+        </div>
+        <div className="bg-zinc-900/50 border border-zinc-800 p-4 rounded-2xl">
+          <p className="text-zinc-500 text-[10px] font-bold uppercase tracking-widest mb-1">Hesap Sayisi</p>
+          <p className="text-xl font-black">{accounts.length}</p>
         </div>
       </div>
 
@@ -268,6 +361,28 @@ export default function SummaryPage() {
               </button>
             </div>
 
+            {/* Action Buttons */}
+            <div className="p-4 border-b border-zinc-900 bg-zinc-900/30 flex flex-wrap gap-2">
+              <button onClick={refreshPrices} disabled={isRefreshingPrices} className="px-3 py-1.5 rounded-lg bg-blue-500/20 border border-blue-500/30 text-blue-400 text-xs font-bold flex items-center gap-1">
+                <RefreshCcw className={`w-3 h-3 ${isRefreshingPrices ? 'animate-spin' : ''}`} /> Fiyatlari Yenile
+              </button>
+              <button onClick={handleAddStock} className="px-3 py-1.5 rounded-lg bg-emerald-500/20 border border-emerald-500/30 text-emerald-400 text-xs font-bold flex items-center gap-1">
+                <Plus className="w-3 h-3" /> Hisse Ekle
+              </button>
+              <button onClick={() => {
+                const amount = Number(prompt("Eklenecek tutar (TL):", "0"));
+                if (amount > 0) handleCashAdjustment(amount);
+              }} className="px-3 py-1.5 rounded-lg bg-emerald-500/20 border border-emerald-500/30 text-emerald-400 text-xs font-bold flex items-center gap-1">
+                <Plus className="w-3 h-3" /> Para Ekle
+              </button>
+              <button onClick={() => {
+                const amount = Number(prompt("Cikarilacak tutar (TL):", "0"));
+                if (amount > 0) handleCashAdjustment(-amount);
+              }} className="px-3 py-1.5 rounded-lg bg-rose-500/20 border border-rose-500/30 text-rose-400 text-xs font-bold flex items-center gap-1">
+                <Minus className="w-3 h-3" /> Para Cikart
+              </button>
+            </div>
+
             <div className="p-6 overflow-auto">
               {detailLoading ? (
                 <div className="p-8 text-center text-zinc-500 font-bold">Yukleniyor...</div>
@@ -305,6 +420,7 @@ export default function SummaryPage() {
                           <th className="p-4">Anlik</th>
                           <th className="p-4">Kar/Zarar</th>
                           <th className="p-4">Durum</th>
+                          <th className="p-4">Islem</th>
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-zinc-900">
@@ -318,6 +434,33 @@ export default function SummaryPage() {
                             <td className="p-4 text-xs text-zinc-400 font-bold">{r.currentPrice ? `${Number(r.currentPrice).toLocaleString('tr-TR')} TL` : '-'}</td>
                             <td className={`p-4 text-xs font-black ${r.pnl >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>{money(r.pnl)}</td>
                             <td className="p-4 text-xs text-zinc-400 font-bold">{r.status}</td>
+                            <td className="p-4">
+                              <div className="flex gap-1">
+                                <button 
+                                  onClick={() => {
+                                    const newLots = Number(prompt("Yeni lot sayısı:", String(r.allottedLots)));
+                                    if (newLots >= 0) handleFixLot(r, newLots);
+                                  }}
+                                  className="p-1 rounded bg-zinc-800 hover:bg-zinc-700 text-zinc-400" title="Lot Düzelt"
+                                >
+                                  <Edit className="w-3 h-3" />
+                                </button>
+                                <button 
+                                  onClick={() => {
+                                    const sellPrice = Number(prompt("Satış fiyatı:", String(r.currentPrice)));
+                                    const sellLots = Number(prompt("Satılacak lot:", String(r.allottedLots)));
+                                    if (sellPrice > 0 && sellLots > 0) {
+                                      // Simple sell logic
+                                      handleCashAdjustment(sellLots * sellPrice);
+                                      handleFixLot(r, r.allottedLots - sellLots);
+                                    }
+                                  }}
+                                  className="p-1 rounded bg-rose-900/30 hover:bg-rose-900/50 text-rose-400" title="Sat"
+                                >
+                                  <ArrowUpRight className="w-3 h-3" />
+                                </button>
+                              </div>
+                            </td>
                           </tr>
                         ))}
                       </tbody>
