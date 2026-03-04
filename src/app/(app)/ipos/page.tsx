@@ -150,14 +150,14 @@ function IpoCard({ ipo, accounts, onEdit, onOpenPanel, onOpenBackfillDemand, onO
               )}
               <button
                 onClick={onEdit}
-                className="p-2 bg-zinc-950/60 border border-zinc-800 rounded-xl text-zinc-500 hover:text-white hover:border-emerald-500/30 transition-all"
+                className="p-2 bg-zinc-200 border border-zinc-300 rounded-xl text-zinc-800 hover:text-black hover:border-emerald-500 transition-all"
                 title="Duzenle"
               >
                 <Pencil className="w-4 h-4" />
               </button>
               <button
                 onClick={() => setIsExpanded(!isExpanded)}
-                className="p-2 bg-zinc-950/60 border border-zinc-800 rounded-xl text-zinc-500 hover:text-white hover:border-emerald-500/30 transition-all"
+                className="p-2 bg-zinc-200 border border-zinc-300 rounded-xl text-zinc-800 hover:text-black hover:border-emerald-500 transition-all"
                 title={isExpanded ? "Kapat" : "Ac"}
               >
                 {isExpanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
@@ -335,7 +335,7 @@ export default function IposPage() {
   const [searchQ, setSearchQ] = useState("");
   const autoCheckingRef = useRef(false);
   const [showStockList, setShowStockList] = useState(false);
-  const [showPastIpos, setShowPastIpos] = useState(false);
+  const [showAllIpos, setShowAllIpos] = useState(false);
   const [activeSellTicker, setActiveSellTicker] = useState<string | null>(null);
   const [activeSellParticipationId, setActiveSellParticipationId] = useState<string | null>(null);
   const [activeSellParticipations, setActiveSellParticipations] = useState<any[]>([]);
@@ -410,13 +410,13 @@ export default function IposPage() {
       const allStatuses = IPO_STATUSES.map((s) => s.id);
       if (!allStatuses.includes(status)) return false;
 
-      if (status === "listeleme") return false;
+      if (status === "listeleme" && !showAllIpos) return false;
 
       const ticker = String(ipo.ticker || "").toUpperCase();
-      if (ticker && stockTickerSet.has(ticker)) return false;
+      if (ticker && stockTickerSet.has(ticker) && !showAllIpos) return false;
 
       const refTs = parseIpoReferenceTs(ipo);
-      if (!showPastIpos && Number.isFinite(refTs) && refTs > 0 && refTs < oneMonthAgoTs) {
+      if (!showAllIpos && Number.isFinite(refTs) && refTs > 0 && refTs < oneMonthAgoTs) {
         return false;
       }
 
@@ -427,7 +427,7 @@ export default function IposPage() {
 
       return true;
     });
-  }, [ipos, searchQ, stockTickerSet, showPastIpos, oneMonthAgoTs]);
+  }, [ipos, searchQ, stockTickerSet, showAllIpos, oneMonthAgoTs]);
 
   const onSaveIpo = async (data: any) => {
     await saveIPO(data);
@@ -466,10 +466,10 @@ export default function IposPage() {
           <span className="text-zinc-500 font-normal text-sm">({filteredIpos.length})</span>
           <button
             type="button"
-            onClick={() => setShowPastIpos((prev) => !prev)}
-            className={`px-3 py-1 rounded-lg text-[10px] font-black uppercase tracking-widest border transition-all ${showPastIpos ? "bg-amber-500/10 border-amber-500/30 text-amber-400" : "bg-zinc-950 border-zinc-800 text-zinc-500 hover:text-white hover:bg-zinc-900"}`}
+            onClick={() => setShowAllIpos((prev: boolean) => !prev)}
+            className={`px-3 py-1 rounded-lg text-[10px] font-black uppercase tracking-widest border transition-all ${showAllIpos ? "bg-blue-500/10 border-blue-500/30 text-blue-400" : "bg-zinc-950 border-zinc-800 text-zinc-500 hover:text-white hover:bg-zinc-900"}`}
           >
-            {showPastIpos ? "Tarih Filtresi Acik" : "Son 1 Ay"}
+            {showAllIpos ? "Tumunu Goster (Aktif)" : "Tumunu Goster (Arsiv)"}
           </button>
         </div>
         

@@ -55,10 +55,12 @@ useEffect(() => {
     }, [ipo]);
 
     const scenarioApplicants = [300000, 400000, 500000, 600000, 700000, 800000, 900000, 1000000, 1150000, 1300000];
+    const ipoPriceVal = Number(formData.ipoPrice || formData.price || 0);
     const scenarioRows = scenarioApplicants.map((applicants) => {
         const totalLots = Number(formData.totalOfferedLots || 0);
         const perAccount = applicants > 0 ? Math.floor(totalLots / applicants) : 0;
-        return { applicants, perAccount };
+        const totalCost = perAccount * ipoPriceVal;
+        return { applicants, perAccount, totalCost };
     });
 
     const handleSubmit = (e: React.FormEvent) => {
@@ -150,6 +152,7 @@ useEffect(() => {
                                         <tr className="text-zinc-500 text-[10px] font-black uppercase tracking-widest border-b border-zinc-800">
                                             <th className="p-3">Basvuru Sayisi</th>
                                             <th className="p-3 text-right">Hesap Basi Olasi Lot</th>
+                                            <th className="p-3 text-right">Yatirim (TL)</th>
                                             <th className="p-3 text-right">Secim</th>
                                         </tr>
                                     </thead>
@@ -158,6 +161,7 @@ useEffect(() => {
                                             <tr key={r.applicants} className="border-b border-zinc-900/70">
                                                 <td className="p-3 text-xs font-bold text-zinc-300">{r.applicants.toLocaleString('tr-TR')}</td>
                                                 <td className="p-3 text-right text-xs font-black text-emerald-400">{r.perAccount.toLocaleString('tr-TR')} Lot</td>
+                                                <td className="p-3 text-right text-xs font-bold text-zinc-400">{r.totalCost.toLocaleString('tr-TR')} TL</td>
                                                 <td className="p-3 text-right">
                                                     <button
                                                         type="button"

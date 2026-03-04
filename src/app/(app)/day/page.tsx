@@ -579,6 +579,28 @@ export default function DayTradingPage() {
     return result;
   }, [visibleAccounts, activeIpos, accountData, isCellResolved]);
 
+  const ipoStats = useMemo(() => {
+    const stats: Record<string, { participatedAccounts: number; totalRequested: number; totalAllotted: number; totalInvestment: number }> = {};
+    for (const ipo of activeIpos) {
+      let participatedAccounts = 0;
+      let totalRequested = 0;
+      let totalAllotted = 0;
+      let totalInvestment = 0;
+      
+      for (const account of visibleAccounts) {
+        const cell = accountData[account.id]?.[ipo.id] || {};
+        const requested = Number(cell.requestedLots || 0);
+        const allotted = Number(cell.allottedLots || 0);
+        if (requested > 0) participatedAccounts++;
+        totalRequested += requested;
+        totalAllotted += allotted;
+        totalInvestment += requested * Number(ipo.price || 0);
+      }
+      stats[ipo.id] = { participatedAccounts, totalRequested, totalAllotted, totalInvestment };
+    }
+    return stats;
+  }, [visibleAccounts, activeIpos, accountData]);
+
   const incompleteAccounts = useMemo(() => {
     return visibleAccounts
       .map((a: any) => ({ account: a, progress: accountProgressById[a.id] || { pending: 0, optedOut: 0, participated: 0 } }))
@@ -769,6 +791,37 @@ export default function DayTradingPage() {
       </section>
 
       <section className="bg-zinc-900/30 border border-zinc-800 rounded-2xl p-4 space-y-3">
+        <h2 className="text-sm font-black">ARZ ISTASTISTIKLERI</h2>
+        <div className="overflow-x-auto">
+          <table className="w-full text-left min-w-[400px]">
+            <thead>
+              <tr className="text-[10px] uppercase tracking-widest text-zinc-500 border-b border-zinc-800">
+                <th className="py-2 pr-2">Arz</th>
+                <th className="py-2 px-2 text-right">Katilan Hesap</th>
+                <th className="py-2 px-2 text-right">Toplam Talep (Lot)</th>
+                <th className="py-2 px-2 text-right">Dagitim (Lot)</th>
+                <th className="py-2 pl-2 text-right">Yatirim (TL)</th>
+              </tr>
+            </thead>
+            <tbody>
+              {activeIpos.map((ipo: any) => {
+                const s = ipoStats[ipo.id] || { participatedAccounts: 0, totalRequested: 0, totalAllotted: 0, totalInvestment: 0 };
+                return (
+                  <tr key={ipo.id} className="border-b border-zinc-900">
+                    <td className="py-2 pr-2 text-xs font-bold">{ipo.ticker}</td>
+                    <td className="py-2 px-2 text-xs text-right text-emerald-400">{s.participatedAccounts}</td>
+                    <td className="py-2 px-2 text-xs text-right text-amber-400">{s.totalRequested}</td>
+                    <td className="py-2 px-2 text-xs text-right text-blue-400">{s.totalAllotted}</td>
+                    <td className="py-2 pl-2 text-xs text-right font-bold">{s.totalInvestment.toLocaleString('tr-TR', { maximumFractionDigits: 0 })}</td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <section className="bg-zinc-900/30 border border-zinc-800 rounded-2xl p-4 space-y-3">
         <h2 className="text-sm font-black">TAMAMLANMAYAN HESAPLAR</h2>
         {incompleteAccounts.length === 0 ? (
           <p className="text-xs text-emerald-400 font-bold">Tum hesaplarda aktif arzlar icin talep/mazeret girildi.</p>
@@ -894,6 +947,37 @@ export default function DayTradingPage() {
             className="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 disabled:cursor-not-allowed rounded-lg text-sm font-bold text-white transition-colors"
           >
             Uygula
+          </button>
+          <button
+            onClick={() => {
+              if (selectedIpos.length === 0 || selectedAccounts.length === 0) return;
+              
+              // Apply recommended lot for EACH selected IPO to ALL selected accounts
+              setAccountData(prev => {
+                const next = { ...prev };
+                for (const accId of selectedAccounts) {
+                  if (!next[accId]) next[accId] = {};
+                  for (const ipoId of selectedIpos) {
+                    const ipo = activeIpos.find((i: any) => i.id === ipoId);
+                    const recLot = Number(ipo?.recommendedLot || 0);
+                    if (recLot > 0) {
+                      next[accId][ipoId] = {
+                        ...(next[accId][ipoId] || {}),
+                        requestedLots: recLot,
+                        status: "Talepte",
+                        reasonCode: "",
+                        optOutConfirmed: false,
+                      };
+                    }
+                  }
+                }
+                return next;
+              });
+            }}
+            disabled={selectedIpos.length === 0 || selectedAccounts.length === 0}
+            className="px-4 py-2 bg-blue-600 hover:bg-blue-500 disabled:opacity-50 disabled:cursor-not-allowed rounded-lg text-sm font-bold text-white transition-colors"
+          >
+            Onerileri Uygula
           </button>
           <button
             onClick={() => {
