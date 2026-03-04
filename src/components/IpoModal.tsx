@@ -63,8 +63,23 @@ useEffect(() => {
         return { applicants, perAccount, totalCost };
     });
 
+    // Validation helpers
+    const hasStartDate = !!formData.applicationStartDate;
+    const hasEndDate = !!formData.demandEndDate;
+    const hasResultDate = !!formData.resultDate;
+    const hasListingDate = !!formData.listingDate;
+
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
+        
+        // Validation: Critical dates check
+        if (!hasStartDate || !hasEndDate) {
+            if (!confirm("Onemli: Islem gunu belirlemek icin 'Baslangic' ve 'Talep Bitis' tarihlerini girmeniz önerilir. Yine de kaydetmek istiyor musunuz?")) {
+                return;
+            }
+        }
+        
+        // Save data
         onSave({ ...formData, id: ipo?.id });
     };
 
@@ -218,80 +233,63 @@ useEffect(() => {
                             </select>
                         </div>
 
-                        {/* Date Fields */}
-                        <div className="grid grid-cols-2 gap-4">
-                            <div className="space-y-2">
-                                <label className="text-xs font-black uppercase tracking-wider text-zinc-500">Duyuru Tarihi</label>
-                                <input
-                                    type="date"
-                                    value={formData.announcementDate}
-                                    onChange={e => setFormData({ ...formData, announcementDate: e.target.value })}
-                                    className="w-full bg-zinc-900 border border-zinc-800 rounded-xl px-4 py-3 text-white focus:border-emerald-500 outline-none transition-all"
-                                />
+                        {/* Critical Date Fields - Simplified */}
+                        <div className="p-4 rounded-xl border border-zinc-800 bg-zinc-900/40 space-y-3">
+                            <h4 className="text-xs font-black uppercase text-zinc-400">Kritik Tarihler (Islem Akisi)</h4>
+                            
+                            <div className="grid grid-cols-2 gap-3">
+                                <div className="space-y-1">
+                                    <label className="text-[10px] font-black uppercase text-zinc-500">Islem Baslangici (Talep Baslangic) <span className="text-rose-400">*</span></label>
+                                    <input
+                                        type="date"
+                                        required
+                                        value={formData.applicationStartDate}
+                                        onChange={e => setFormData({ ...formData, applicationStartDate: e.target.value })}
+                                        className="w-full bg-zinc-950 border border-zinc-700 rounded-lg px-3 py-2 text-white text-sm"
+                                    />
+                                </div>
+                                <div className="space-y-1">
+                                    <label className="text-[10px] font-black uppercase text-zinc-500">Son Katilim (Talep Bitis) <span className="text-rose-400">*</span></label>
+                                    <input
+                                        type="date"
+                                        required
+                                        value={formData.demandEndDate}
+                                        onChange={e => setFormData({ ...formData, demandEndDate: e.target.value })}
+                                        className="w-full bg-zinc-950 border border-zinc-700 rounded-lg px-3 py-2 text-white text-sm"
+                                    />
+                                </div>
+                                <div className="space-y-1">
+                                    <label className="text-[10px] font-black uppercase text-zinc-500">Son Katilim Saati</label>
+                                    <input
+                                        type="time"
+                                        value={formData.demandEndTime}
+                                        onChange={e => setFormData({ ...formData, demandEndTime: e.target.value })}
+                                        className="w-full bg-zinc-950 border border-zinc-700 rounded-lg px-3 py-2 text-white text-sm"
+                                    />
+                                </div>
+                                <div className="space-y-1">
+                                    <label className="text-[10px] font-black uppercase text-zinc-500">Sonuc Açiklanma Tarihi</label>
+                                    <input
+                                        type="date"
+                                        value={formData.resultDate}
+                                        onChange={e => setFormData({ ...formData, resultDate: e.target.value })}
+                                        className="w-full bg-zinc-950 border border-zinc-700 rounded-lg px-3 py-2 text-white text-sm"
+                                    />
+                                </div>
+                                <div className="space-y-1 col-span-2">
+                                    <label className="text-[10px] font-black uppercase text-zinc-500">Borsada Islem Baslangici (Listeleme)</label>
+                                    <input
+                                        type="date"
+                                        value={formData.listingDate}
+                                        onChange={e => setFormData({ ...formData, listingDate: e.target.value })}
+                                        className="w-full bg-zinc-950 border border-zinc-700 rounded-lg px-3 py-2 text-white text-sm"
+                                    />
+                                </div>
                             </div>
-                            <div className="space-y-2">
-                                <label className="text-xs font-black uppercase tracking-wider text-zinc-500">Başvuru Başlangıç</label>
-                                <input
-                                    type="date"
-                                    value={formData.applicationStartDate}
-                                    onChange={e => setFormData({ ...formData, applicationStartDate: e.target.value })}
-                                    className="w-full bg-zinc-900 border border-zinc-800 rounded-xl px-4 py-3 text-white focus:border-emerald-500 outline-none transition-all"
-                                />
-                            </div>
-                            <div className="space-y-2">
-                                <label className="text-xs font-black uppercase tracking-wider text-zinc-500">Başvuru Bitiş</label>
-                                <input
-                                    type="date"
-                                    value={formData.applicationEndDate}
-                                    onChange={e => setFormData({ ...formData, applicationEndDate: e.target.value })}
-                                    className="w-full bg-zinc-900 border border-zinc-800 rounded-xl px-4 py-3 text-white focus:border-emerald-500 outline-none transition-all"
-                                />
-                            </div>
-                            <div className="space-y-2">
-                                <label className="text-xs font-black uppercase tracking-wider text-zinc-500">Talep Bitiş</label>
-                                <input
-                                    type="date"
-                                    value={formData.demandEndDate}
-                                    onChange={e => setFormData({ ...formData, demandEndDate: e.target.value })}
-                                    className="w-full bg-zinc-900 border border-zinc-800 rounded-xl px-4 py-3 text-white focus:border-emerald-500 outline-none transition-all"
-                                />
-                            </div>
-                            <div className="space-y-2">
-                                <label className="text-xs font-black uppercase tracking-wider text-zinc-500">Talep Bitiş Saat</label>
-                                <input
-                                    type="time"
-                                    value={formData.demandEndTime}
-                                    onChange={e => setFormData({ ...formData, demandEndTime: e.target.value })}
-                                    className="w-full bg-zinc-900 border border-zinc-800 rounded-xl px-4 py-3 text-white focus:border-emerald-500 outline-none transition-all"
-                                />
-                            </div>
-                            <div className="space-y-2">
-                                <label className="text-xs font-black uppercase tracking-wider text-zinc-500">Tahsis Tarihi</label>
-                                <input
-                                    type="date"
-                                    value={formData.allocationDate}
-                                    onChange={e => setFormData({ ...formData, allocationDate: e.target.value })}
-                                    className="w-full bg-zinc-900 border border-zinc-800 rounded-xl px-4 py-3 text-white focus:border-emerald-500 outline-none transition-all"
-                                />
-                            </div>
-                            <div className="space-y-2">
-                                <label className="text-xs font-black uppercase tracking-wider text-zinc-500">Sonuç Tarihi</label>
-                                <input
-                                    type="date"
-                                    value={formData.resultDate}
-                                    onChange={e => setFormData({ ...formData, resultDate: e.target.value })}
-                                    className="w-full bg-zinc-900 border border-zinc-800 rounded-xl px-4 py-3 text-white focus:border-emerald-500 outline-none transition-all"
-                                />
-                            </div>
-                            <div className="space-y-2">
-                                <label className="text-xs font-black uppercase tracking-wider text-zinc-500">Listeleme Tarihi</label>
-                                <input
-                                    type="date"
-                                    value={formData.listingDate}
-                                    onChange={e => setFormData({ ...formData, listingDate: e.target.value })}
-                                    className="w-full bg-zinc-900 border border-zinc-800 rounded-xl px-4 py-3 text-white focus:border-emerald-500 outline-none transition-all"
-                                />
-                            </div>
+                            
+                            <p className="text-[10px] text-zinc-500">
+                                * Isaretli alanlar onemlidir. Tarihler ardasira: Baslangic {'<'} Talep Bitis {'<'} Sonuc {'<'} Listeleme
+                            </p>
                         </div>
                     </div>
 

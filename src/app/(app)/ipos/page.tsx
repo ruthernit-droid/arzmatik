@@ -95,7 +95,30 @@ function IpoCard({ ipo, accounts, onEdit, onOpenPanel, onOpenBackfillDemand, onO
   });
 
   const handleAdvanceStatus = async () => {
-    if (!nextStatus || !confirm(`Durumu ilerletmek istiyor musunuz?\n${getStatusLabel(ipo.status)} → ${getStatusLabel(nextStatus)}`)) return;
+    if (!nextStatus) return;
+
+    const normalized = normalizeIpoStatus(String(ipo.status || ""));
+    
+    // Validation checks before advancing
+    if (normalized === "talep_toplaniyor" || normalized === "talep_kapandi") {
+        const hasDemand = accountData.some((a: any) => (a.requestedLots || 0) > 0);
+        if (!hasDemand) {
+            alert("Hata: Bu aşamaya geçmek için önce talep girişi yapmalısınız!");
+            return;
+        }
+        if (!confirm(`UYARI: Talep girilmemiş hesaplar var. Yine de ilerletmek istiyor musunuz?`)) return;
+    }
+
+    if (normalized === "tahsis" || normalized === "sonuclar") {
+        const hasDistribution = accountData.some((a: any) => (a.allottedLots || 0) > 0);
+        if (!hasDistribution) {
+            alert("Hata: Bu aşamaya geçmek için önce dağıtım sonuçlarını girmelisiniz!");
+            return;
+        }
+        if (!confirm(`UYARI: Dağıtım girilmemiş hesaplar var. Yine de ilerletmek istiyor musunuz?`)) return;
+    }
+
+    if (!confirm(`Durumu ilerletmek istiyor musunuz?\n${getStatusLabel(ipo.status)} → ${getStatusLabel(nextStatus)}`)) return;
     
     setIsAdvancing(true);
     try {
