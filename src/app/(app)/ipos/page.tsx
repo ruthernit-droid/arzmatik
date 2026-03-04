@@ -260,6 +260,21 @@ function IpoCard({ ipo, accounts, onEdit, onOpenPanel, onOpenBackfillDemand, onO
                 </div>
               </div>
 
+              {/* Main Action: Enter Distribution */}
+              <div className="p-3 rounded-xl border border-blue-500/30 bg-blue-500/10 space-y-2">
+                <h5 className="text-xs font-black text-blue-300 uppercase tracking-widest">Dağıtım Sonuçlarını Gir</h5>
+                <p className="text-[11px] text-zinc-400">Banka borsa sonuçları açıklandıysa buradan dağıtım miktarını girin.</p>
+                <div className="flex flex-wrap gap-2">
+                  <button
+                    type="button"
+                    onClick={onOpenBackfillDistribution}
+                    className="px-3 py-1.5 rounded-lg border border-blue-500/30 bg-blue-500/20 text-blue-300 text-[11px] font-bold"
+                  >
+                    Dagitim Gir / Duzelt
+                  </button>
+                </div>
+              </div>
+
               <div className="p-3 rounded-xl border border-zinc-800 bg-zinc-950/40 space-y-2">
                 <h5 className="text-xs font-black text-zinc-300 uppercase tracking-widest">Gecmise Donuk Duzeltme</h5>
                 <p className="text-[11px] text-zinc-500">Reelde yapilip projeye islenmeyen islemleri buradan isleyin.</p>
@@ -468,6 +483,15 @@ export default function IposPage() {
   };
 
   const openBackfillOperation = (ipo: any, mode: 'talep' | 'dagitim') => {
+    // Warn if entering distribution without appropriate status
+    if (mode === 'dagitim') {
+        const normalized = normalizeIpoStatus(String(ipo.status || ""));
+        if (normalized !== 'talep_kapandi' && normalized !== 'tahsis' && normalized !== 'sonuclar' && normalized !== 'listeleme') {
+            if (!confirm("Bu arz icin dağıtım sonuclarını giriyorsunuz ancak durum 'Talep Kapandı' veya 'Sonuclar' degil. Yine de devam etmek istiyor musunuz?")) {
+                return;
+            }
+        }
+    }
     setOperationMode(mode);
     setActiveIpo(ipo);
   };
