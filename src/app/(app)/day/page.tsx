@@ -31,6 +31,7 @@ export default function DayTradingPage() {
   const [isLoadingExisting, setIsLoadingExisting] = useState(false);
   const [completedAccounts, setCompletedAccounts] = useState<string[]>([]);
   const [skippedAccounts, setSkippedAccounts] = useState<string[]>([]);
+  const [skippedIpos, setSkippedIpos] = useState<string[]>([]); // IPOs manually skipped for today
   const [isOnline, setIsOnline] = useState(true);
   const [pendingSaveKeys, setPendingSaveKeys] = useState<string[]>([]);
   const [defaultLots, setDefaultLots] = useState<number>(100);
@@ -75,8 +76,10 @@ export default function DayTradingPage() {
 
   const activeIpos = useMemo(() => {
     const now = Date.now();
+    const skippedSet = new Set(skippedIpos);
     return (ipos || []).filter((ipo: any) => {
       if (ipo.dayEnabled === false) return false;
+      if (skippedSet.has(ipo.id)) return false;
       const normalized = normalizeIpoStatus(String(ipo.status || ""));
       const demandEndTs = new Date(String(ipo.demandEndDate || "")).getTime();
       if (Number.isFinite(demandEndTs) && demandEndTs > 0 && demandEndTs <= now) return false;
@@ -89,7 +92,7 @@ export default function DayTradingPage() {
       const dateB = new Date(b.demandEndDate || 0).getTime();
       return dateA - dateB;
     });
-  }, [ipos]);
+  }, [ipos, skippedIpos]);
 
   const visibleAccounts = useMemo(() => {
     return (accounts || []).filter((a: any) => a.isActive !== false);
@@ -147,6 +150,7 @@ export default function DayTradingPage() {
       if (parsed.accountData && typeof parsed.accountData === "object") setAccountData(parsed.accountData);
       if (Array.isArray(parsed.completedAccounts)) setCompletedAccounts(parsed.completedAccounts);
       if (Array.isArray(parsed.skippedAccounts)) setSkippedAccounts(parsed.skippedAccounts);
+      if (Array.isArray(parsed.skippedIpos)) setSkippedIpos(parsed.skippedIpos);
       if (Array.isArray(parsed.pendingSaveKeys)) setPendingSaveKeys(parsed.pendingSaveKeys);
     } catch {
       // ignore broken draft
@@ -161,11 +165,12 @@ export default function DayTradingPage() {
       accountData,
       completedAccounts,
       skippedAccounts,
+      skippedIpos,
       pendingSaveKeys,
       updatedAt: new Date().toISOString(),
     };
     window.localStorage.setItem(draftStorageKey, JSON.stringify(payload));
-  }, [draftStorageKey, selectedIpos, selectedAccounts, accountData, completedAccounts, skippedAccounts, pendingSaveKeys]);
+  }, [draftStorageKey, selectedIpos, selectedAccounts, accountData, completedAccounts, skippedAccounts, skippedIpos, pendingSaveKeys]);
 
   useEffect(() => {
     if (initializedRef.current) return;
@@ -899,14 +904,24 @@ export default function DayTradingPage() {
         <div className="flex flex-wrap gap-1.5">
           {activeIpos.map((ipo: any) => {
             const rec = Number(ipo.recommendedLot || 0);
+            const isSelected = selectedIpos.includes(ipo.id);
             return (
-              <span
+              <button
                 key={ipo.id}
-                className="px-2 py-1 rounded-md text-[11px] font-bold border bg-emerald-500/10 border-emerald-500/30 text-emerald-300"
+                type="button"
+                onClick={() => {
+                    if (confirm(`${ipo.ticker} icin bugunku islemleri tamamladiniz mi? Bu arz bugun bir daha sorulmayacak.`)) {
+                        setSkippedIpos(prev => [...prev, ipo.id]);
+                        setSelectedIpos(prev => prev.filter(id => id !== ipo.id));
+                    }
+                }}
+                title="Bu arzi bugun atla (ileri tarihli tekrar aktive etmek icin sayfayi yenilemeniz gerekebilir)"
+                className={`px-2 py-1 rounded-md text-[11px] font-bold border flex items-center gap-1 ${isSelected ? "bg-emerald-500/20 border-emerald-500/40 text-emerald-300" : "bg-zinc-900 border-zinc-800 text-zinc-500"}`}
               >
+                {isSelected && <span className="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>}
                 {ipo.ticker} · ₺{Number(ipo.price || 0).toLocaleString("tr-TR", { maximumFractionDigits: 2 })}
                 {rec > 0 ? ` · Oneri: ${rec}L` : ""}
-              </span>
+              </button>
             );
           })}
           
