@@ -201,13 +201,21 @@ function IpoCard({ ipo, accounts, onEdit, onOpenPanel, onOpenBackfillDemand, onO
             </div>
           </div>
 
-          {canParticipate ? (
-            <button
-              onClick={onOpenPanel}
-              className="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-sm font-bold transition-all flex items-center gap-2"
-            >
-              İşlem Paneli <ChevronRight className="w-4 h-4" />
-            </button>
+          {canParticipate || normalizedStatus === "talep_kapandi" || normalizedStatus === "tahsis" || normalizedStatus === "sonuclar" ? (
+            <div className="flex gap-2">
+              <button
+                onClick={onOpenPanel}
+                className="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-sm font-bold transition-all flex items-center gap-2"
+              >
+                Talep Gir <ChevronRight className="w-4 h-4" />
+              </button>
+              <button
+                onClick={onOpenBackfillDistribution}
+                className="px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-xl text-sm font-bold transition-all flex items-center gap-2"
+              >
+                Dağıtım Gir
+              </button>
+            </div>
           ) : (
             <div className="flex items-center gap-2 px-3 py-2 bg-zinc-800 rounded-xl text-xs text-zinc-500">
               <AlertCircle className="w-4 h-4" />
@@ -215,6 +223,8 @@ function IpoCard({ ipo, accounts, onEdit, onOpenPanel, onOpenBackfillDemand, onO
                 ? "Listelendi: Dagitim sonuclari tamamlandi mi kontrol edin"
                 : normalizedStatus === "sonuclar"
                 ? "Sonuclar aciklandi: Dagitimi hesaplara girin"
+                : normalizedStatus === "talep_kapandi"
+                ? "Talep kapandi: Dagitim sonuclarini girin"
                 : "Talep donemi disinda"}
             </div>
           )}
